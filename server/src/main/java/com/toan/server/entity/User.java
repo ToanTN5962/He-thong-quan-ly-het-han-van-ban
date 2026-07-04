@@ -1,3 +1,12 @@
+package com.toan.server.entity;
+
+import com.toan.server.enums.Role;
+import jakarta.persistence.*;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "users")
 public class User {

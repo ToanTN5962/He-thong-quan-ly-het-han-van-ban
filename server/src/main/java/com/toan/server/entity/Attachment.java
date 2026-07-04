@@ -1,3 +1,9 @@
+package com.toan.server.entity;
+
+import jakarta.persistence.*;
+
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "attachments")
 public class Attachment {

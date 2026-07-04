@@ -1,3 +1,10 @@
+package com.toan.server.entity;
+
+import com.toan.server.enums.AuditAction;
+import jakarta.persistence.*;
+
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "audit_logs")
 public class AuditLog {

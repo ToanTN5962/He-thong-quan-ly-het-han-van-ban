@@ -1,3 +1,14 @@
+package com.toan.server.entity;
+
+import com.toan.server.enums.DocumentStatus;
+
+import jakarta.persistence.*;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "documents")
 public class Document {

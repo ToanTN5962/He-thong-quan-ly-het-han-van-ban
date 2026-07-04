@@ -1,3 +1,10 @@
+package com.toan.server.entity;
+
+import com.toan.server.enums.NotificationType;
+import jakarta.persistence.*;
+
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "notifications")
 public class Notification {
