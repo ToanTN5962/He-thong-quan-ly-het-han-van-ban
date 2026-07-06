@@ -108,7 +108,7 @@ export default function UserHomePage() {
           <div className="w-8 h-8 bg-[#e53935] rounded-lg flex items-center justify-center text-white font-bold">
             D
           </div>
-          <span className="text-xl font-bold text-[#e53935]">DocGuard</span>
+          <span className="text-xl font-bold text-[#e53935]">DocWatch</span>
         </div>
 
         {/* User Info */}
@@ -118,7 +118,7 @@ export default function UserHomePage() {
           </div>
           <div>
             <h4 className="text-sm font-bold">System Admin</h4>
-            <p className="text-xs text-slate-500">admin@docguard.io</p>
+            <p className="text-xs text-slate-500">admin@docwatch.io</p>
           </div>
         </div>
 
