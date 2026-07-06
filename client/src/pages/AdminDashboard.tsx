@@ -103,8 +103,8 @@ export default function Dashboard() {
 
         <nav className="flex-1 space-y-1">
           <SidebarItem icon={LayoutDashboard} label="Dashboard" active />
-          <SidebarItem icon={User} label="My Profile" />
-          <SidebarItem icon={Settings} label="Settings" />
+          <SidebarItem icon={User} label="Quản lý người dùng" />
+          <SidebarItem icon={Settings} label="Cài đặt" />
           <SidebarItem icon={HelpCircle} label="Help & Support" />
         </nav>
 
