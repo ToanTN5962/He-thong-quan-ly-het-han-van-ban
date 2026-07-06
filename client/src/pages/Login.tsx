@@ -150,7 +150,7 @@ export default function LoginPage() {
       
       {/* Copyright */}
       <p className="fixed bottom-6 text-slate-400 text-xs">
-        © 2024 DocWatch System. All rights reserved.
+        © 2026 DocWatch System. All rights reserved.
       </p>
     </div>
   );
