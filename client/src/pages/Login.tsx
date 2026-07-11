@@ -1,4 +1,5 @@
 import { useState, type FormEventHandler } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Mail, 
   Lock, 
@@ -12,11 +13,37 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const navigate = useNavigate();
 
-  const handleSubmit: FormEventHandler<HTMLFormElement> = (e) => {
+  const handleSubmit: FormEventHandler<HTMLFormElement> = async (e) => {
     e.preventDefault();
-    // Logic đăng nhập sẽ được thực hiện ở đây
-    console.log('Login attempt:', { email, password, rememberMe });
+
+    try {
+      const resp = await fetch('http://localhost:8080/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await resp.json();
+
+      if (resp.ok) {
+        const token = `${data.type} ${data.token}`;
+        localStorage.setItem('authToken', token);
+        localStorage.setItem('userEmail', data.email || '');
+        localStorage.setItem('userFullname', data.fullname || '');
+        localStorage.setItem('userRole', data.role || '');
+
+        const role = (data.role || '').toLowerCase();
+        if (role.includes('admin')) navigate('/admin');
+        else navigate('/user');
+      } else {
+        alert(data.error || 'Đăng nhập thất bại. Vui lòng kiểm tra thông tin.');
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      alert('Không thể kết nối đến máy chủ. Vui lòng thử lại.');
+    }
   };
 
   return (
