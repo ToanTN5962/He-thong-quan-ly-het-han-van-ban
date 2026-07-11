@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   User, 
   Mail, 
@@ -6,7 +7,6 @@ import {
   Eye, 
   EyeOff, 
   RotateCcw,
-  CheckCircle2,
   FileText
 } from 'lucide-react';
 
@@ -29,9 +29,36 @@ export default function RegisterPage() {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Registration attempt:', formData);
+    const navigate = useNavigate();
+
+    const payload = {
+      fullName: formData.fullName,
+      email: formData.email,
+      password: formData.password,
+      confirmPassword: formData.confirmPassword
+    };
+
+    try {
+      const response = await fetch('http://localhost:8080/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert(data.message);
+        navigate('/login');
+      } else {
+        alert(data.error || 'Có lỗi xảy ra, vui lòng thử lại.');
+      }
+    } catch (error) {
+      console.error('Error connecting to backend:', error);
+      alert('Không thể kết nối đến máy chủ.');
+    }
   };
 
   return (

@@ -4,14 +4,8 @@ import {
   Bell, 
   ShieldCheck, 
   Layout, 
-  BarChart3, 
-  ArrowRight, 
+  BarChart3,  
   PlayCircle,
-  CheckCircle2,
-  Globe,
-  Users,
-  Shield,
-  Clock,
   Menu,
   X
 } from 'lucide-react';
