@@ -40,7 +40,6 @@ public class S3StorageServiceImpl implements StorageService {
                     .bucket(bucketName)
                     .key(customFileName)
                     .contentType(file.getContentType())
-                    .acl(ObjectCannedACL.PUBLIC_READ) 
                     .build();
 
             // 3. Thực thi đẩy dữ liệu lên AWS
