@@ -21,6 +21,8 @@ export default function RegisterPage() {
     agreeToTerms: false
   });
 
+  const navigate = useNavigate();
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
@@ -31,7 +33,6 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const navigate = useNavigate();
 
     const payload = {
       fullName: formData.fullName,
