@@ -9,8 +9,13 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
+
 @Entity
 @Table(name = "documents")
+@SQLDelete(sql = "UPDATE documents SET deleted_at = NOW() WHERE id = ?")
+@SQLRestriction("deleted_at IS NULL")
 public class Document {
 
     @Id
@@ -49,6 +54,7 @@ public class Document {
     private User owner;
 
     @OneToMany(mappedBy = "document")
+    @SQLRestriction("deleted_at IS NULL")
     private List<Attachment> attachments = new ArrayList<>();
 
     @OneToMany(mappedBy = "document")

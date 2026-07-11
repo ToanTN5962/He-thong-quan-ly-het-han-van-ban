@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import {
   LayoutDashboard,
   FileText,
@@ -73,6 +73,44 @@ export default function UserHomePage() {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('Tất cả danh mục');
   const [selectedStatus, setSelectedStatus] = useState<string>('Tất cả trạng thái');
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadCode, setUploadCode] = useState('');
+  const [uploadTitle, setUploadTitle] = useState('');
+  const [uploadCategory, setUploadCategory] = useState('Hợp đồng');
+  const [uploadExpiryDate, setUploadExpiryDate] = useState('');
+  const [uploadDescription, setUploadDescription] = useState('');
+  const [uploadFiles, setUploadFiles] = useState<File[]>([]);
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const uploadCategories = ['Hợp đồng', 'Giấy phép', 'Bảo hiểm', 'Chứng chỉ', 'Khác'];
+
+  const resetUploadForm = () => {
+    setUploadCode('');
+    setUploadTitle('');
+    setUploadCategory('Hợp đồng');
+    setUploadExpiryDate('');
+    setUploadDescription('');
+    setUploadFiles([]);
+    setUploadError(null);
+    setUploadStatus(null);
+  };
+
+  const addUploadFiles = (files: FileList | null) => {
+    if (!files) return;
+    const newFiles = Array.from(files).filter(
+      (file) =>
+        !uploadFiles.some(
+          (existing) =>
+            existing.name === file.name &&
+            existing.size === file.size &&
+            existing.type === file.type
+        )
+    );
+    if (newFiles.length > 0) {
+      setUploadFiles((prev) => [...prev, ...newFiles]);
+    }
+  };
 
   // Logic lọc tài liệu theo Tìm kiếm, Danh mục và Trạng thái
   const filteredDocuments = initialDocuments.filter((doc) => {
@@ -177,11 +215,182 @@ export default function UserHomePage() {
                 className="pl-10 pr-4 py-2 border border-slate-200 rounded-full w-80 focus:outline-none focus:ring-2 focus:ring-[#e53935]/20 focus:border-[#e53935] transition-all"
               />
             </div>
-            <button className="flex items-center gap-2 bg-[#e53935] hover:bg-[#c62828] text-white px-6 py-2.5 rounded-xl font-semibold shadow-lg shadow-red-200 transition-all active:scale-95">
+            <button
+              onClick={() => {
+                setShowUploadModal(true);
+                resetUploadForm();
+              }}
+              className="flex items-center gap-2 bg-[#e53935] hover:bg-[#c62828] text-white px-6 py-2.5 rounded-xl font-semibold shadow-lg shadow-red-200 transition-all active:scale-95"
+            >
               <PlusCircle size={20} /> Tải lên tài liệu mới
             </button>
           </div>
         </header>
+
+        {/* Upload Modal */}
+        {showUploadModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 px-4 py-8">
+            <div className="w-full max-w-3xl rounded-3xl bg-white shadow-2xl overflow-hidden">
+              <div className="flex items-center justify-between px-8 py-6 border-b border-slate-200">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-900">Tải lên tài liệu mới</h2>
+                  <p className="text-sm text-slate-500">Nhập thông tin tài liệu và chọn file để upload.</p>
+                </div>
+                <button
+                  onClick={() => setShowUploadModal(false)}
+                  className="text-slate-500 hover:text-slate-900 transition-colors"
+                >
+                  Đóng
+                </button>
+              </div>
+
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setUploadError(null);
+                  setUploadStatus(null);
+
+                  if (uploadFiles.length === 0) {
+                    setUploadError('Vui lòng chọn ít nhất một file để upload.');
+                    return;
+                  }
+
+                  const formData = new FormData();
+                  uploadFiles.forEach((file) => formData.append('file', file));
+                  formData.append('code', uploadCode);
+                  formData.append('title', uploadTitle);
+                  formData.append('category', uploadCategory);
+                  formData.append('expiryDate', uploadExpiryDate);
+                  formData.append('description', uploadDescription);
+
+                  try {
+                    const response = await fetch('http://localhost:8080/api/files/upload', {
+                      method: 'POST',
+                      body: formData,
+                    });
+
+                    const data = await response.json();
+                    if (response.ok) {
+                      setUploadStatus('Upload thành công! File đã được lưu vào hệ thống.');
+                    } else {
+                      setUploadError(data.error || 'Có lỗi khi upload file.');
+                    }
+                  } catch (error) {
+                    setUploadError('Không thể kết nối đến server. Vui lòng thử lại.');
+                    console.error(error);
+                  }
+                }}
+                className="space-y-6 px-8 py-6"
+              >
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                  <label className="block">
+                    <span className="text-sm font-semibold text-slate-600">Mã tài liệu</span>
+                    <input
+                      type="text"
+                      value={uploadCode}
+                      onChange={(e) => setUploadCode(e.target.value)}
+                      placeholder="VD: DOC-2024-001"
+                      className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-[#e53935] focus:outline-none focus:ring-2 focus:ring-[#e53935]/20"
+                      required
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-sm font-semibold text-slate-600">Tiêu đề</span>
+                    <input
+                      type="text"
+                      value={uploadTitle}
+                      onChange={(e) => setUploadTitle(e.target.value)}
+                      placeholder="Tên tài liệu"
+                      className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-[#e53935] focus:outline-none focus:ring-2 focus:ring-[#e53935]/20"
+                      required
+                    />
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                  <label className="block">
+                    <span className="text-sm font-semibold text-slate-600">Danh mục</span>
+                    <select
+                      value={uploadCategory}
+                      onChange={(e) => setUploadCategory(e.target.value)}
+                      className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-[#e53935] focus:outline-none focus:ring-2 focus:ring-[#e53935]/20"
+                    >
+                      {uploadCategories.map((category) => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className="text-sm font-semibold text-slate-600">Ngày hết hạn</span>
+                    <input
+                      type="date"
+                      value={uploadExpiryDate}
+                      onChange={(e) => setUploadExpiryDate(e.target.value)}
+                      className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-[#e53935] focus:outline-none focus:ring-2 focus:ring-[#e53935]/20"
+                      required
+                    />
+                  </label>
+                </div>
+
+                <label className="block">
+                  <span className="text-sm font-semibold text-slate-600">Mô tả / Ghi chú</span>
+                  <textarea
+                    value={uploadDescription}
+                    onChange={(e) => setUploadDescription(e.target.value)}
+                    placeholder="Thêm mô tả ngắn cho tài liệu"
+                    className="mt-2 w-full min-h-[120px] rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-[#e53935] focus:outline-none focus:ring-2 focus:ring-[#e53935]/20"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-sm font-semibold text-slate-600">File tài liệu</span>
+                  <input
+                    type="file"
+                    multiple
+                    accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    onChange={(e) => addUploadFiles(e.target.files)}
+                    className="mt-2 w-full text-sm text-slate-700 file:mr-4 file:rounded-full file:border-0 file:bg-[#e53935] file:px-4 file:py-2 file:text-sm file:text-white hover:file:bg-[#c62828]"
+                    required
+                  />
+                  {uploadFiles.length > 0 && (
+                    <p className="mt-2 text-sm text-slate-500">
+                      Đã chọn {uploadFiles.length} file: {uploadFiles.map((file) => file.name).join(', ')}
+                    </p>
+                  )}
+                </label>
+
+                {uploadError && (
+                  <div className="rounded-2xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-700">
+                    {uploadError}
+                  </div>
+                )}
+                {uploadStatus && (
+                  <div className="rounded-2xl bg-emerald-50 border border-emerald-100 px-4 py-3 text-sm text-emerald-700">
+                    {uploadStatus}
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setShowUploadModal(false)}
+                    className="w-full rounded-2xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-colors sm:w-auto"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="submit"
+                    className="w-full rounded-2xl bg-[#e53935] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-red-200 hover:bg-[#c62828] transition-colors sm:w-auto"
+                  >
+                    Gửi lên
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* Filters Panel */}
         <section className="grid grid-cols-4 gap-6 p-6 mb-8 bg-white border rounded-2xl border-slate-100 shadow-sm items-end">

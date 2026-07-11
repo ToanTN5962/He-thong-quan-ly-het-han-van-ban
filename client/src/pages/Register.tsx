@@ -65,21 +65,21 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-[#fcf9f8] font-sans text-slate-900 flex flex-col">
       {/* Header/Nav */}
-      <header className="w-full px-8 py-6 flex justify-between items-center bg-white/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-[#e53935] rounded-lg flex items-center justify-center text-white">
-            <FileText size={20} />
+      <header className="w-full px-8 py-6 bg-white/50 backdrop-blur-sm sticky top-0 z-50">
+        <div className="grid grid-cols-3 items-center gap-4">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-[#e53935] rounded-lg flex items-center justify-center text-white">
+              <FileText size={20} />
+            </div>
+            <span className="text-xl font-bold text-[#e53935] tracking-tight">DocWatch</span>
           </div>
-          <span className="text-xl font-bold text-[#e53935] tracking-tight">DocWatch</span>
+          <nav className="hidden md:flex justify-center items-center gap-8 col-span-1">
+            <a href="#" className="text-sm font-medium text-slate-600 hover:text-[#e53935] transition-colors">Tính năng</a>
+            <a href="#" className="text-sm font-medium text-slate-600 hover:text-[#e53935] transition-colors">Bảng giá</a>
+            <a href="#" className="text-sm font-bold text-[#e53935] border-b-2 border-[#e53935] pb-1">Đăng ký</a>
+          </nav>
+          <div />
         </div>
-        <nav className="hidden md:flex items-center gap-8">
-          <a href="#" className="text-sm font-medium text-slate-600 hover:text-[#e53935] transition-colors">Tính năng</a>
-          <a href="#" className="text-sm font-medium text-slate-600 hover:text-[#e53935] transition-colors">Bảng giá</a>
-          <a href="#" className="text-sm font-bold text-[#e53935] border-b-2 border-[#e53935] pb-1">Đăng ký</a>
-        </nav>
-        <button className="px-6 py-2.5 bg-[#e53935] text-white rounded-xl text-sm font-bold hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-red-100">
-          Đăng nhập
-        </button>
       </header>
 
       <main className="flex-1 flex items-center justify-center p-6 md:p-12">
@@ -251,7 +251,7 @@ export default function RegisterPage() {
 
             <p className="mt-12 text-center text-sm text-slate-500">
               Đã có tài khoản?{' '}
-              <button className="font-bold text-[#e53935] hover:underline transition-all">Đăng nhập</button>
+              <button className="font-bold text-[#e53935] hover:underline transition-all" onClick = {() => navigate('/login')}>Đăng nhập</button>
             </p>
           </div>
         </div>

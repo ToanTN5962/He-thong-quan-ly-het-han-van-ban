@@ -169,7 +169,7 @@ export default function LoginPage() {
             {/* Footer Links */}
             <p className="mt-12 text-center text-sm text-slate-500">
               Chưa có tài khoản?{' '}
-              <button className="font-bold text-[#e53935] hover:underline">Đăng ký tài khoản mới</button>
+              <button className="font-bold text-[#e53935] hover:underline" onClick = {() => navigate('/register')}>Đăng ký tài khoản mới</button>
             </p>
           </div>
         </div>

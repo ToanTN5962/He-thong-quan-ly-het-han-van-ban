@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   FileText, 
   Bell, 
@@ -49,6 +50,7 @@ const Stats = [
 
 export default function HomePage() {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-white font-sans text-slate-900 overflow-x-hidden">
@@ -72,10 +74,10 @@ export default function HomePage() {
           </div>
 
           <div className="hidden md:flex items-center gap-4">
-            <button className="px-6 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 rounded-xl transition-all">
+            <button className="px-6 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 rounded-xl transition-all" onClick = {() => navigate('/login')}>
               Đăng nhập
             </button>
-            <button className="px-6 py-2.5 bg-[#e53935] text-white rounded-xl text-sm font-bold hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-red-100">
+            <button className="px-6 py-2.5 bg-[#e53935] text-white rounded-xl text-sm font-bold hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-red-100" onClick = {() => navigate('/register')}>
               Bắt đầu miễn phí
             </button>
           </div>

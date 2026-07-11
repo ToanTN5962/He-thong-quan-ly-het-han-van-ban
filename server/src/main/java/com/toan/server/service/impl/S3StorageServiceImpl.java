@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 
 import java.io.IOException;
 import java.util.UUID;
+import java.util.Map;
 
 @Service
 public class S3StorageServiceImpl implements StorageService {
@@ -35,18 +36,18 @@ public class S3StorageServiceImpl implements StorageService {
         // Sinh tên file bằng UUID tránh bị ghi đè trùng tên
         String originalFileName = file.getOriginalFilename();
         String fileExtension = originalFileName != null ? originalFileName.substring(originalFileName.lastIndexOf(".")) : "";
-        String customFileName = UUID.randomUUID().toString() + fileExtension;
+        String storedName = UUID.randomUUID().toString() + fileExtension;
 
         try {
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                     .bucket(bucketName)
-                    .key(customFileName)
+                    .key(storedName)
                     .contentType(file.getContentType())
                     .build();
 
             s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
 
-            return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, customFileName);
+            return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, storedName);
 
         } catch (IOException e) {
             throw new RuntimeException("Lỗi xảy ra trong quá trình upload file lên AWS S3: " + e.getMessage());
