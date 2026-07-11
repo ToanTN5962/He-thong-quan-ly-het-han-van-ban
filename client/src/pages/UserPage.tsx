@@ -77,6 +77,9 @@ export default function UserHomePage() {
   const [uploadCode, setUploadCode] = useState('');
   const [uploadTitle, setUploadTitle] = useState('');
   const [uploadCategory, setUploadCategory] = useState('Hợp đồng');
+  const [uploadIssuingAgency, setUploadIssuingAgency] = useState('');
+  const [uploadIssueDate, setUploadIssueDate] = useState('');
+  const [uploadEffectiveDate, setUploadEffectiveDate] = useState('');
   const [uploadExpiryDate, setUploadExpiryDate] = useState('');
   const [uploadDescription, setUploadDescription] = useState('');
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
@@ -89,6 +92,9 @@ export default function UserHomePage() {
     setUploadCode('');
     setUploadTitle('');
     setUploadCategory('Hợp đồng');
+    setUploadIssuingAgency('');
+    setUploadIssueDate('');
+    setUploadEffectiveDate('');
     setUploadExpiryDate('');
     setUploadDescription('');
     setUploadFiles([]);
@@ -230,8 +236,8 @@ export default function UserHomePage() {
         {/* Upload Modal */}
         {showUploadModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 px-4 py-8">
-            <div className="w-full max-w-3xl rounded-3xl bg-white shadow-2xl overflow-hidden">
-              <div className="flex items-center justify-between px-8 py-6 border-b border-slate-200">
+            <div className="w-full max-w-3xl rounded-3xl bg-white shadow-2xl overflow-hidden max-h-[calc(100vh-5rem)] flex flex-col">
+              <div className="flex items-center justify-between px-8 py-6 border-b border-slate-200 flex-shrink-0">
                 <div>
                   <h2 className="text-2xl font-bold text-slate-900">Tải lên tài liệu mới</h2>
                   <p className="text-sm text-slate-500">Nhập thông tin tài liệu và chọn file để upload.</p>
@@ -244,8 +250,9 @@ export default function UserHomePage() {
                 </button>
               </div>
 
-              <form
-                onSubmit={async (e) => {
+              <div className="overflow-y-auto px-8 py-6 max-h-[calc(100vh-11rem)] min-h-0">
+                <form
+                  onSubmit={async (e) => {
                   e.preventDefault();
                   setUploadError(null);
                   setUploadStatus(null);
@@ -260,8 +267,16 @@ export default function UserHomePage() {
                   formData.append('code', uploadCode);
                   formData.append('title', uploadTitle);
                   formData.append('category', uploadCategory);
+                  formData.append('issuingAgency', uploadIssuingAgency);
+                  formData.append('issueDate', uploadIssueDate);
+                  formData.append('effectiveDate', uploadEffectiveDate);
                   formData.append('expiryDate', uploadExpiryDate);
                   formData.append('description', uploadDescription);
+
+                  const ownerEmail = localStorage.getItem('userEmail');
+                  if (ownerEmail) {
+                    formData.append('ownerEmail', ownerEmail);
+                  }
 
                   try {
                     const response = await fetch('http://localhost:8080/api/files/upload', {
@@ -321,6 +336,40 @@ export default function UserHomePage() {
                         </option>
                       ))}
                     </select>
+                  </label>
+                  <label className="block">
+                    <span className="text-sm font-semibold text-slate-600">Cơ quan ban hành</span>
+                    <input
+                      type="text"
+                      value={uploadIssuingAgency}
+                      onChange={(e) => setUploadIssuingAgency(e.target.value)}
+                      placeholder="Tên cơ quan ban hành"
+                      className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-[#e53935] focus:outline-none focus:ring-2 focus:ring-[#e53935]/20"
+                      required
+                    />
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                  <label className="block">
+                    <span className="text-sm font-semibold text-slate-600">Ngày ban hành</span>
+                    <input
+                      type="date"
+                      value={uploadIssueDate}
+                      onChange={(e) => setUploadIssueDate(e.target.value)}
+                      className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-[#e53935] focus:outline-none focus:ring-2 focus:ring-[#e53935]/20"
+                      required
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-sm font-semibold text-slate-600">Ngày hiệu lực</span>
+                    <input
+                      type="date"
+                      value={uploadEffectiveDate}
+                      onChange={(e) => setUploadEffectiveDate(e.target.value)}
+                      className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-[#e53935] focus:outline-none focus:ring-2 focus:ring-[#e53935]/20"
+                      required
+                    />
                   </label>
                   <label className="block">
                     <span className="text-sm font-semibold text-slate-600">Ngày hết hạn</span>
@@ -390,6 +439,7 @@ export default function UserHomePage() {
               </form>
             </div>
           </div>
+        </div>
         )}
 
         {/* Filters Panel */}
@@ -408,6 +458,7 @@ export default function UserHomePage() {
               <option>Giấy phép</option>
               <option>Bảo hiểm</option>
               <option>Chứng chỉ</option>
+              <option>Khác</option>
             </select>
           </div>
           <div>

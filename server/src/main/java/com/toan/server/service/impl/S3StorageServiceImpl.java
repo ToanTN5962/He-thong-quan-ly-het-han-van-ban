@@ -1,6 +1,16 @@
 package com.toan.server.service.impl;
 
+import com.toan.server.entity.Attachment;
+import com.toan.server.entity.Document;
+import com.toan.server.entity.DocumentCategory;
+import com.toan.server.enums.DocumentStatus;
+import com.toan.server.repository.AttachmentRepository;
+import com.toan.server.repository.DocumentCategoryRepository;
+import com.toan.server.repository.DocumentRepository;
+import com.toan.server.repository.UserRepository;
 import com.toan.server.service.StorageService;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -13,13 +23,29 @@ import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import java.util.stream.Collectors;
 
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 @Service
 public class S3StorageServiceImpl implements StorageService {
 
     private final S3Client s3Client;
+
+    @Autowired
+    private DocumentRepository documentRepository;
+
+    @Autowired
+    private DocumentCategoryRepository documentCategoryRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private AttachmentRepository attachmentRepository;
 
     @Value("${aws.s3.bucket-name}")
     private String bucketName;
@@ -32,26 +58,100 @@ public class S3StorageServiceImpl implements StorageService {
     }
 
     @Override
-    public String uploadFile(MultipartFile file) {
-        // Sinh tên file bằng UUID tránh bị ghi đè trùng tên
-        String originalFileName = file.getOriginalFilename();
-        String fileExtension = originalFileName != null ? originalFileName.substring(originalFileName.lastIndexOf(".")) : "";
-        String storedName = UUID.randomUUID().toString() + fileExtension;
+    public Document uploadFile(
+        MultipartFile[] files,
+        String title,
+        String documentNumber,
+        String summary,
+        String issuingAgency,
+        String enactedDate,
+        String effectiveDate,
+        String expireDate,
+        String categoryName,
+        String ownerEmail
+    ) {
 
-        try {
-            PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-                    .bucket(bucketName)
-                    .key(storedName)
-                    .contentType(file.getContentType())
-                    .build();
+        Document document = new Document();
+        document.setTitle(title);
+        document.setDocumentNumber(documentNumber);
+        document.setSummary(summary);
+        document.setIssuingAgency(issuingAgency);
 
-            s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
-
-            return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, storedName);
-
-        } catch (IOException e) {
-            throw new RuntimeException("Lỗi xảy ra trong quá trình upload file lên AWS S3: " + e.getMessage());
+        if (enactedDate != null && !enactedDate.isBlank()) {
+            document.setEnactedDate(LocalDate.parse(enactedDate));
         }
+        if (effectiveDate != null && !effectiveDate.isBlank()) {
+            document.setEffectiveDate(LocalDate.parse(effectiveDate));
+        }
+        if (expireDate != null && !expireDate.isBlank()) {
+            document.setExpireDate(LocalDate.parse(expireDate));
+        }
+
+        if (categoryName != null && !categoryName.isBlank()) {
+            DocumentCategory category = documentCategoryRepository.findByName(categoryName)
+                    .orElseGet(() -> {
+                        DocumentCategory newCategory = new DocumentCategory();
+                        newCategory.setName(categoryName);
+                        return documentCategoryRepository.save(newCategory);
+                    });
+            document.setCategory(category);
+        }
+
+        if (ownerEmail != null && !ownerEmail.isBlank()) {
+            userRepository.findByEmail(ownerEmail).ifPresent(document::setOwner);
+        }
+
+        document.setStatus(DocumentStatus.ACTIVE);
+        document.setCreatedAt(LocalDateTime.now());
+        document.setUpdatedAt(LocalDateTime.now());
+
+        Document savedDocument = documentRepository.save(document);
+        
+        if (files != null && files.length > 0) {
+            List<Attachment> attachments = new ArrayList<>();
+            
+            for (MultipartFile file : files) {
+                if (file.isEmpty()) continue;
+
+                String originalFileName = file.getOriginalFilename();
+                String fileExtension = originalFileName != null && originalFileName.contains(".") 
+                        ? originalFileName.substring(originalFileName.lastIndexOf(".")) 
+                        : "";
+                String storedName = UUID.randomUUID().toString() + fileExtension;
+
+                try {
+                    PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                            .bucket(bucketName)
+                            .key(storedName)
+                            .contentType(file.getContentType())
+                            .build();
+
+                    s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
+
+                    String fileUrl = String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, storedName);
+
+                    Attachment attachment = new Attachment();
+                    attachment.setOriginalName(originalFileName);
+                    attachment.setStoredName(storedName);
+                    attachment.setFilePath(fileUrl);
+                    attachment.setFileSize(file.getSize());
+                    attachment.setUploadedAt(LocalDateTime.now());
+                    attachment.setDocument(savedDocument);
+
+                    attachments.add(attachment);
+
+                } catch (IOException e) {
+                    throw new RuntimeException("Lỗi xảy ra trong quá trình upload file lên AWS S3: " + e.getMessage());
+                }
+            }
+            
+            if (!attachments.isEmpty()) {
+                attachmentRepository.saveAll(attachments);
+                savedDocument.setAttachments(attachments);
+            }
+        }
+
+        return savedDocument;
     }
 
     @Override
