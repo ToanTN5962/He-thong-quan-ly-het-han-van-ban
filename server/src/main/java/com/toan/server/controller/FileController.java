@@ -25,11 +25,20 @@ public class FileController {
         }
         try {
             String fileUrl = storageService.uploadFile(file);
-            // Trả về chuỗi URL của S3
             return ResponseEntity.ok(Map.of(
                     "message", "Upload file lên AWS thành công!",
                     "fileUrl", fileUrl
             ));
+        } catch (RuntimeException e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/all")
+    public ResponseEntity<?> getAllFiles() {
+        try {
+            java.util.List<String> files = storageService.listAllFiles();
+            return ResponseEntity.ok(files);
         } catch (RuntimeException e) {
             return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
         }

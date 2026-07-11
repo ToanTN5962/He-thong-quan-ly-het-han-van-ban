@@ -6,8 +6,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.ObjectCannedACL;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
+import java.util.stream.Collectors;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -29,28 +32,38 @@ public class S3StorageServiceImpl implements StorageService {
 
     @Override
     public String uploadFile(MultipartFile file) {
-        // 1. Tự sinh tên file độc bản bằng UUID tránh bị ghi đè trùng tên trên S3
+        // Sinh tên file bằng UUID tránh bị ghi đè trùng tên
         String originalFileName = file.getOriginalFilename();
         String fileExtension = originalFileName != null ? originalFileName.substring(originalFileName.lastIndexOf(".")) : "";
         String customFileName = UUID.randomUUID().toString() + fileExtension;
 
         try {
-            // 2. Tạo yêu cầu đẩy file lên với quyền đọc công khai (Public Read) để FE dễ lấy link
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                     .bucket(bucketName)
                     .key(customFileName)
                     .contentType(file.getContentType())
                     .build();
 
-            // 3. Thực thi đẩy dữ liệu lên AWS
             s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
 
-            // 4. Trả về đường link URL tuyệt đối của file vừa upload
             return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, customFileName);
 
         } catch (IOException e) {
             throw new RuntimeException("Lỗi xảy ra trong quá trình upload file lên AWS S3: " + e.getMessage());
         }
+    }
+
+    @Override
+    public java.util.List<String> listAllFiles() {
+        ListObjectsV2Request listObjectsV2Request = ListObjectsV2Request.builder()
+                .bucket(bucketName)
+                .build();
+
+        ListObjectsV2Response listObjectsV2Response = s3Client.listObjectsV2(listObjectsV2Request);
+
+        return listObjectsV2Response.contents().stream()
+                .map(s3Object -> String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, s3Object.key()))
+                .collect(Collectors.toList());
     }
 
     @Override
