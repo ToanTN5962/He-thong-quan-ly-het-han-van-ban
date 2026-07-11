@@ -143,16 +143,6 @@ export default function HomePage() {
                 alt="DocWatch Dashboard" 
                 className="rounded-[32px] w-full object-cover transition-transform duration-700 group-hover:scale-105"
               />
-              {/* Floating Element Simulation */}
-              <div className="absolute top-12 -right-8 bg-white p-5 rounded-2xl shadow-xl border border-slate-50 flex items-center gap-4 animate-bounce-slow">
-                <div className="w-12 h-12 bg-red-50 text-[#e53935] rounded-full flex items-center justify-center">
-                  <Bell size={24} />
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Thông báo mới</p>
-                  <p className="text-sm font-bold text-slate-800">Hợp đồng hết hạn trong 3 ngày</p>
-                </div>
-              </div>
             </div>
           </div>
         </div>

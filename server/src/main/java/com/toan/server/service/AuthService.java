@@ -1,12 +1,15 @@
 package com.toan.server.service;
 
-import com.toan.server.dto.LoginRequest;
-import com.toan.server.dto.LoginResponse;
+import com.toan.server.dto.request.LoginRequest;
+import com.toan.server.dto.request.RegisterRequest;
+import com.toan.server.dto.response.LoginResponse;
 import com.toan.server.entity.User;
+import com.toan.server.enums.Role;
 import com.toan.server.repository.UserRepository;
 import com.toan.server.security.JwtTokenProvider;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import java.time.LocalDateTime;
 
 @Service
 public class AuthService {
@@ -35,5 +38,39 @@ public class AuthService {
 
         String token = tokenProvider.generateToken(user);
         return new LoginResponse(token, user.getEmail(), user.getFullname(), user.getRole().name());
+    }
+
+    public String registerUser(RegisterRequest registerRequest) {
+        if (!registerRequest.getPassword().equals(registerRequest.getConfirmPassword())) {
+            throw new RuntimeException("Mật khẩu xác nhận không trùng khớp!");
+        }
+
+        if (userRepository.existsByEmail(registerRequest.getEmail())) {
+            throw new RuntimeException("Email này đã được sử dụng bởi một tài khoản khác!");
+        }
+
+        String baseUsername = registerRequest.getEmail().split("@")[0];
+        String username = baseUsername;
+        int counter = 1;
+        // Vòng lặp phòng trường hợp hai email trùng tiền tố trước @
+        while (userRepository.existsByUsername(username)) {
+            username = baseUsername + counter;
+            counter++;
+        }
+
+        User user = new User();
+
+        user.setFullname(registerRequest.getFullName());
+        user.setEmail(registerRequest.getEmail());
+        user.setUsername(username);
+        user.setPassword(passwordEncoder.encode(registerRequest.getPassword())); 
+        user.setRole(Role.USER);                                          
+        user.setIsActive(true);
+        user.setCreatedAt(LocalDateTime.now());
+        user.setUpdatedAt(LocalDateTime.now());
+
+        userRepository.save(user);
+
+        return "Đăng ký tài khoản thành công!";
     }
 }

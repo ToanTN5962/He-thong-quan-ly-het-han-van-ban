@@ -67,16 +67,6 @@ export default function RegisterPage() {
                   alt="Workspace" 
                   className="rounded-[24px] w-full h-[450px] object-cover"
                 />
-                {/* Floating UI Elements Simulation */}
-                <div className="absolute -right-8 top-12 bg-white p-4 rounded-2xl shadow-xl border border-slate-50 flex items-center gap-3 animate-bounce-slow">
-                  <div className="w-10 h-10 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center">
-                    <CheckCircle2 size={24} />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Trạng thái</p>
-                    <p className="text-sm font-bold">Văn bản hợp lệ</p>
-                  </div>
-                </div>
               </div>
             </div>
 
