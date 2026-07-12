@@ -58,7 +58,6 @@ public class Document {
     private User owner;
 
     @OneToMany(mappedBy = "document")
-    @SQLRestriction("deleted_at IS NULL")
     private List<Attachment> attachments = new ArrayList<>();
 
     @OneToMany(mappedBy = "document")

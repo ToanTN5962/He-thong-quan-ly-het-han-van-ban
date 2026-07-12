@@ -1,9 +1,12 @@
 package com.toan.server.dto.response;
 
+import com.toan.server.dto.response.AttachmentResponse;
 import com.toan.server.entity.Document;
 import com.toan.server.enums.DocumentStatus;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class DocumentResponse {
 
@@ -18,6 +21,7 @@ public class DocumentResponse {
     private DocumentStatus status;
     private String category;
     private String ownerEmail;
+    private List<AttachmentResponse> attachments;
 
     public DocumentResponse() {
     }
@@ -25,7 +29,7 @@ public class DocumentResponse {
     public DocumentResponse(Long id, String title, String documentNumber, String summary,
                             String issuingAgency, LocalDate enactedDate, LocalDate effectiveDate,
                             LocalDate expireDate, DocumentStatus status, String category,
-                            String ownerEmail) {
+                            String ownerEmail, List<AttachmentResponse> attachments) {
         this.id = id;
         this.title = title;
         this.documentNumber = documentNumber;
@@ -37,11 +41,15 @@ public class DocumentResponse {
         this.status = status;
         this.category = category;
         this.ownerEmail = ownerEmail;
+        this.attachments = attachments;
     }
 
     public static DocumentResponse from(Document document) {
         String categoryName = document.getCategory() != null ? document.getCategory().getName() : null;
         String ownerEmail = document.getOwner() != null ? document.getOwner().getEmail() : null;
+        List<AttachmentResponse> attachments = document.getAttachments() != null
+                ? document.getAttachments().stream().map(AttachmentResponse::from).collect(Collectors.toList())
+                : List.<AttachmentResponse>of();
 
         return new DocumentResponse(
                 document.getId(),
@@ -54,7 +62,8 @@ public class DocumentResponse {
                 document.getExpireDate(),
                 document.getStatus(),
                 categoryName,
-                ownerEmail
+                ownerEmail,
+                attachments
         );
     }
 
@@ -144,5 +153,13 @@ public class DocumentResponse {
 
     public void setOwnerEmail(String ownerEmail) {
         this.ownerEmail = ownerEmail;
+    }
+
+    public java.util.List<AttachmentResponse> getAttachments() {
+        return attachments;
+    }
+
+    public void setAttachments(java.util.List<AttachmentResponse> attachments) {
+        this.attachments = attachments;
     }
 }

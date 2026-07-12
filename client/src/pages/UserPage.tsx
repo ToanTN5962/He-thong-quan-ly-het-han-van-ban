@@ -18,7 +18,15 @@ import {
   Calendar,
 } from 'lucide-react';
 
-// Định nghĩa Interface rõ ràng cho Document
+// Định nghĩa Interface rõ ràng cho Attachment và Document
+interface Attachment {
+  id: string;
+  originalName: string;
+  filePath: string;
+  fileSize: number;
+  uploadedAt?: string;
+}
+
 interface Document {
   id: string;
   code: string;
@@ -28,6 +36,12 @@ interface Document {
   status: 'expired' | 'expiring' | 'active';
   daysLeft?: number;
   overdueDays?: number;
+  summary?: string;
+  issuingAgency?: string;
+  enactedDate?: string;
+  effectiveDate?: string;
+  ownerEmail?: string;
+  attachments?: Attachment[];
 }
 
 
@@ -52,6 +66,9 @@ export default function UserHomePage() {
   const [userEmail, setUserEmail] = useState<string>('admin@docwatch.io');
   const [documents, setDocuments] = useState<Document[]>([]);
   const [documentError, setDocumentError] = useState<string | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+  const [showDocumentModal, setShowDocumentModal] = useState(false);
+  const [previewAttachment, setPreviewAttachment] = useState<Attachment | null>(null);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const navigate = useNavigate();
 
@@ -96,9 +113,26 @@ export default function UserHomePage() {
     };
 
     const rawExpire = backendDoc.expireDate;
+    const rawEnacted = backendDoc.enactedDate;
+    const rawEffective = backendDoc.effectiveDate;
     const expiryDate = rawExpire
       ? new Date(rawExpire).toLocaleDateString('vi-VN')
       : '';
+    const enactedDate = rawEnacted
+      ? new Date(rawEnacted).toLocaleDateString('vi-VN')
+      : '';
+    const effectiveDate = rawEffective
+      ? new Date(rawEffective).toLocaleDateString('vi-VN')
+      : '';
+    const attachments: Attachment[] = Array.isArray(backendDoc.attachments)
+      ? backendDoc.attachments.map((item: any) => ({
+          id: String(item.id ?? ''),
+          originalName: item.originalName ?? 'Không tên',
+          filePath: item.filePath ?? '',
+          fileSize: Number(item.fileSize ?? 0),
+          uploadedAt: item.uploadedAt ? new Date(item.uploadedAt).toLocaleString('vi-VN') : '',
+        }))
+      : [];
 
     const today = new Date();
     const expiry = rawExpire ? new Date(rawExpire) : null;
@@ -113,6 +147,12 @@ export default function UserHomePage() {
       status: statusMap[backendDoc.status] ?? 'active',
       daysLeft: rawDiffDays !== undefined && rawDiffDays >= 0 ? rawDiffDays : undefined,
       overdueDays: rawDiffDays !== undefined && rawDiffDays < 0 ? Math.abs(rawDiffDays) : undefined,
+      summary: backendDoc.summary ?? '',
+      issuingAgency: backendDoc.issuingAgency ?? '',
+      enactedDate,
+      effectiveDate,
+      ownerEmail: backendDoc.ownerEmail ?? '',
+      attachments,
     };
   };
 
@@ -261,6 +301,154 @@ export default function UserHomePage() {
               >
                 Đăng xuất
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDocumentModal && selectedDocument && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4 py-6">
+          <div className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-2xl overflow-y-auto max-h-[calc(100vh-4rem)]">
+            <div className="flex items-start justify-between gap-4 mb-6">
+              <div>
+                <h3 className="text-xl font-bold text-slate-900">Chi tiết tài liệu</h3>
+                <p className="text-sm text-slate-500">Xem thông tin đầy đủ về tài liệu đã upload.</p>
+              </div>
+              <button
+                onClick={() => setShowDocumentModal(false)}
+                className="text-slate-500 hover:text-slate-900 transition-colors"
+              >
+                Đóng
+              </button>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-3">
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-500">Tiêu đề</h4>
+                  <p className="mt-1 text-sm text-slate-900">{selectedDocument.title}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-500">Mã tài liệu</h4>
+                  <p className="mt-1 text-sm text-slate-900">{selectedDocument.code}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-500">Danh mục</h4>
+                  <p className="mt-1 text-sm text-slate-900">{selectedDocument.category}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-500">Cơ quan ban hành</h4>
+                  <p className="mt-1 text-sm text-slate-900">{selectedDocument.issuingAgency ?? 'Chưa có'}</p>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-500">Ngày ban hành</h4>
+                  <p className="mt-1 text-sm text-slate-900">{selectedDocument.enactedDate ?? 'Chưa có'}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-500">Ngày hiệu lực</h4>
+                  <p className="mt-1 text-sm text-slate-900">{selectedDocument.effectiveDate ?? 'Chưa có'}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-500">Ngày hết hạn</h4>
+                  <p className="mt-1 text-sm text-slate-900">{selectedDocument.expiryDate ?? 'Chưa có'}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-500">Người sở hữu</h4>
+                  <p className="mt-1 text-sm text-slate-900">{selectedDocument.ownerEmail ?? 'Chưa có'}</p>
+                </div>
+              </div>
+            </div>
+            <div className="mt-6 space-y-4">
+              <div>
+                <h4 className="text-sm font-semibold text-slate-500">Tóm tắt</h4>
+                <p className="mt-1 text-sm text-slate-900 whitespace-pre-line">{selectedDocument.summary || 'Không có tóm tắt.'}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold text-slate-500">Trạng thái</h4>
+                <p className="mt-1 text-sm text-slate-900 uppercase tracking-wide">
+                  {selectedDocument.status === 'expired'
+                    ? 'Hết hạn'
+                    : selectedDocument.status === 'expiring'
+                    ? 'Sắp hết hạn'
+                    : 'Còn hiệu lực'}
+                </p>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <p className="text-xs text-slate-500">Còn lại</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-900">{selectedDocument.daysLeft ?? '-'}</p>
+                </div>
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <p className="text-xs text-slate-500">Quá hạn</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-900">{selectedDocument.overdueDays ?? '-'}</p>
+                </div>
+              </div>
+            </div>
+            <div className="mt-6">
+              <h4 className="text-sm font-semibold text-slate-500">File đính kèm</h4>
+              {selectedDocument.attachments && selectedDocument.attachments.length > 0 ? (
+                <div className="mt-3 space-y-3">
+                  {selectedDocument.attachments.map((attachment) => (
+                    <div key={attachment.id} className="rounded-2xl border border-slate-200 p-4 bg-slate-50">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <p className="font-semibold text-slate-900">{attachment.originalName}</p>
+                          <p className="text-xs text-slate-500">
+                            {attachment.uploadedAt ? `Uploaded: ${attachment.uploadedAt}` : 'Không có thời gian upload'} • {attachment.fileSize.toLocaleString()} bytes
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 mt-3 sm:mt-0">
+                          <button
+                            type="button"
+                            onClick={() => setPreviewAttachment(attachment)}
+                            className="rounded-2xl bg-[#e53935] px-4 py-2 text-xs font-semibold text-white hover:bg-[#c62828] transition-colors"
+                          >
+                            Xem trước
+                          </button>
+                          <a
+                            href={attachment.filePath}
+                            target="_blank"
+                            rel="noreferrer"
+                            download={attachment.originalName}
+                            className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
+                          >
+                            Tải về
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-3 text-sm text-slate-500">Không có file đính kèm.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {previewAttachment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 px-4 py-6">
+          <div className="w-full max-w-4xl rounded-3xl bg-white shadow-2xl overflow-hidden max-h-[calc(100vh-4rem)]">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Xem trước file</h3>
+                <p className="text-sm text-slate-500">{previewAttachment.originalName}</p>
+              </div>
+              <button
+                onClick={() => setPreviewAttachment(null)}
+                className="text-slate-500 hover:text-slate-900 transition-colors"
+              >
+                Đóng
+              </button>
+            </div>
+            <div className="bg-slate-950 p-4 min-h-[480px] overflow-auto">
+              <iframe
+                src={previewAttachment.filePath}
+                title={previewAttachment.originalName}
+                className="w-full min-h-[520px] border-0"
+              />
             </div>
           </div>
         </div>
@@ -666,6 +854,10 @@ export default function UserHomePage() {
                       <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           title="Xem"
+                          onClick={() => {
+                            setSelectedDocument(doc);
+                            setShowDocumentModal(true);
+                          }}
                           className="p-2 text-slate-400 hover:text-[#e53935] hover:bg-red-50 rounded-lg transition-all"
                         >
                           <Eye size={18} />
