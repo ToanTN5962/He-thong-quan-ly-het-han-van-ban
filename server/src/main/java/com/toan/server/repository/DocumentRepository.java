@@ -1,6 +1,7 @@
 package com.toan.server.repository;
 
 import com.toan.server.entity.Document;
+import com.toan.server.enums.DocumentStatus;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -19,4 +20,6 @@ public interface DocumentRepository extends JpaRepository<Document, Long> {
             @Param("today") LocalDate today,
             @Param("maxDate") LocalDate maxDate
     );
+
+    List<Document> findByStatusIn(List<DocumentStatus> statuses);
 }
