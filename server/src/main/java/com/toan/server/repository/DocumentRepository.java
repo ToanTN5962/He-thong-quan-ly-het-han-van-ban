@@ -16,10 +16,13 @@ public interface DocumentRepository extends JpaRepository<Document, Long> {
         SELECT d
         FROM Document d
         WHERE d.expireDate BETWEEN :today AND :maxDate
+          AND d.owner IS NOT NULL
+          AND d.status IN :statuses
     """)
     List<Document> findDocumentsExpiringBetween(
             @Param("today") LocalDate today,
-            @Param("maxDate") LocalDate maxDate
+            @Param("maxDate") LocalDate maxDate,
+            @Param("statuses") List<DocumentStatus> statuses
     );
 
     List<Document> findByStatusIn(List<DocumentStatus> statuses);

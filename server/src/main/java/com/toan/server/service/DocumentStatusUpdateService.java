@@ -1,6 +1,7 @@
 package com.toan.server.service;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
@@ -19,12 +20,13 @@ import lombok.RequiredArgsConstructor;
 public class DocumentStatusUpdateService {
 
     private final DocumentRepository documentRepository;
+    private static final ZoneId VIETNAM_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
-    @Scheduled(cron = "0 0 0 * * *")
+    @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Ho_Chi_Minh")
     @Transactional
     public void updateDocumentStatus() {
 
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(VIETNAM_ZONE);
 
         List<Document> documents =
                 documentRepository.findByStatusIn(
@@ -32,6 +34,9 @@ public class DocumentStatusUpdateService {
                 );
 
         for (Document document : documents) {
+            if (document.getExpireDate() == null) {
+                continue;
+            }
 
             long daysRemaining = ChronoUnit.DAYS.between(today, document.getExpireDate());
 
@@ -39,6 +44,8 @@ public class DocumentStatusUpdateService {
                 document.setStatus(DocumentStatus.EXPIRED);
             } else if (daysRemaining <= 30) {
                 document.setStatus(DocumentStatus.EXPIRINGSOON);
+            } else {
+                document.setStatus(DocumentStatus.ACTIVE);
             }
         }
     }
