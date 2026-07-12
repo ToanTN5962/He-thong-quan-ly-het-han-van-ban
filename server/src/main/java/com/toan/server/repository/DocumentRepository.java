@@ -23,5 +23,12 @@ public interface DocumentRepository extends JpaRepository<Document, Long> {
 
     List<Document> findByStatusIn(List<DocumentStatus> statuses);
 
-    List<Document> findByOwnerEmail(String ownerEmail);
+    @Query("""
+        SELECT d
+        FROM Document d
+        JOIN FETCH d.owner o
+        LEFT JOIN FETCH d.category c
+        WHERE o.email = :ownerEmail
+    """)
+    List<Document> findByOwnerEmail(@Param("ownerEmail") String ownerEmail);
 }

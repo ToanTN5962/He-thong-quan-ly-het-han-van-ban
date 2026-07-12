@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import {
-  type LucideIcon,
   LayoutDashboard, 
   UserRound, 
   Settings, 

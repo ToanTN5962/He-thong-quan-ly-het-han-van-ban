@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -30,44 +30,6 @@ interface Document {
   overdueDays?: number;
 }
 
-// Dữ liệu mẫu (Mock Data)
-const initialDocuments: Document[] = [
-  {
-    id: '1',
-    code: 'DOC-2023-089',
-    title: 'Hợp đồng thuê văn phòng Q1',
-    category: 'Hợp đồng',
-    expiryDate: '15/10/2023',
-    status: 'expired',
-    overdueDays: 12,
-  },
-  {
-    id: '2',
-    code: 'LIC-9922-FIRE',
-    title: 'Giấy phép PCCC 2023-2024',
-    category: 'Giấy phép',
-    expiryDate: '20/11/2023',
-    status: 'expiring',
-  },
-  {
-    id: '3',
-    code: 'INS-332-CAR',
-    title: 'Bảo hiểm xe Mercedes E300',
-    category: 'Bảo hiểm',
-    expiryDate: '12/08/2024',
-    status: 'active',
-    daysLeft: 289,
-  },
-  {
-    id: '4',
-    code: 'CERT-ISO-22',
-    title: 'Chứng chỉ ISO 9001:2015',
-    category: 'Chứng chỉ',
-    expiryDate: '05/05/2025',
-    status: 'active',
-    daysLeft: 550,
-  },
-];
 
 export default function UserHomePage() {
   const [activeTab, setActiveTab] = useState<string>('documents');
@@ -88,6 +50,8 @@ export default function UserHomePage() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>('System Admin');
   const [userEmail, setUserEmail] = useState<string>('admin@docwatch.io');
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [documentError, setDocumentError] = useState<string | null>(null);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const navigate = useNavigate();
 
@@ -123,8 +87,52 @@ export default function UserHomePage() {
     }
   };
 
+  const mapBackendDocument = (backendDoc: any): Document => {
+    const statusMap: Record<string, Document['status']> = {
+      EXPIRED: 'expired',
+      EXPIRINGSOON: 'expiring',
+      ACTIVE: 'active',
+      DRAFT: 'active',
+    };
+
+    const rawExpire = backendDoc.expireDate;
+    const expiryDate = rawExpire
+      ? new Date(rawExpire).toLocaleDateString('vi-VN')
+      : '';
+
+    const today = new Date();
+    const expiry = rawExpire ? new Date(rawExpire) : null;
+    const rawDiffDays = expiry ? Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : undefined;
+
+    return {
+      id: String(backendDoc.id ?? ''),
+      code: backendDoc.documentNumber ?? '-',
+      title: backendDoc.title ?? 'Không tên',
+      category: backendDoc.category ?? 'Khác',
+      expiryDate,
+      status: statusMap[backendDoc.status] ?? 'active',
+      daysLeft: rawDiffDays !== undefined && rawDiffDays >= 0 ? rawDiffDays : undefined,
+      overdueDays: rawDiffDays !== undefined && rawDiffDays < 0 ? Math.abs(rawDiffDays) : undefined,
+    };
+  };
+
+  const fetchUserDocuments = async (ownerEmail: string) => {
+    setDocumentError(null);
+    try {
+      const response = await fetch(`http://localhost:8080/api/documents/owner?ownerEmail=${encodeURIComponent(ownerEmail)}`);
+      if (!response.ok) {
+        throw new Error('Không thể tải danh sách tài liệu.');
+      }
+      const data = await response.json();
+      setDocuments(Array.isArray(data) ? data.map(mapBackendDocument) : []);
+    } catch (error) {
+      setDocumentError(error instanceof Error ? error.message : 'Lỗi khi lấy dữ liệu tài liệu.');
+      setDocuments([]);
+    }
+  };
+
   // Logic lọc tài liệu theo Tìm kiếm, Danh mục và Trạng thái
-  const filteredDocuments = initialDocuments.filter((doc) => {
+  const filteredDocuments = documents.filter((doc) => {
     const matchesSearch =
       doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       doc.code.toLowerCase().includes(searchTerm.toLowerCase());
@@ -151,6 +159,7 @@ export default function UserHomePage() {
     }
     if (storedEmail) {
       setUserEmail(storedEmail);
+      fetchUserDocuments(storedEmail);
     }
   }, []);
 
@@ -587,7 +596,13 @@ export default function UserHomePage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredDocuments.length > 0 ? (
+              {documentError ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-10 text-center text-sm text-red-500">
+                    {documentError}
+                  </td>
+                </tr>
+              ) : filteredDocuments.length > 0 ? (
                 filteredDocuments.map((doc) => (
                   <tr key={doc.id} className="hover:bg-slate-50/50 transition-colors group">
                     <td className="px-6 py-5">

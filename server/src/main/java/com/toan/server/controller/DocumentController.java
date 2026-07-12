@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @RestController
@@ -26,7 +28,8 @@ public class DocumentController {
     public ResponseEntity<List<DocumentResponse>> getDocumentsByOwnerEmail(
             @RequestParam("ownerEmail") String ownerEmail
     ) {
-        List<DocumentResponse> documents = documentRepository.findByOwnerEmail(ownerEmail).stream()
+        String decodedEmail = URLDecoder.decode(ownerEmail, StandardCharsets.UTF_8);
+        List<DocumentResponse> documents = documentRepository.findByOwnerEmail(decodedEmail).stream()
                 .map(DocumentResponse::from)
                 .toList();
         return ResponseEntity.ok(documents);
