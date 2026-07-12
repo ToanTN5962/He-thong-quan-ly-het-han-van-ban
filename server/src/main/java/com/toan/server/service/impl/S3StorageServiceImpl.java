@@ -1,10 +1,13 @@
 package com.toan.server.service.impl;
 
 import com.toan.server.entity.Attachment;
+import com.toan.server.entity.AuditLog;
 import com.toan.server.entity.Document;
 import com.toan.server.entity.DocumentCategory;
+import com.toan.server.enums.AuditAction;
 import com.toan.server.enums.DocumentStatus;
 import com.toan.server.repository.AttachmentRepository;
+import com.toan.server.repository.AuditLogRepository;
 import com.toan.server.repository.DocumentCategoryRepository;
 import com.toan.server.repository.DocumentRepository;
 import com.toan.server.repository.UserRepository;
@@ -48,6 +51,9 @@ public class S3StorageServiceImpl implements StorageService {
 
     @Autowired
     private AttachmentRepository attachmentRepository;
+
+    @Autowired
+    private AuditLogRepository auditLogRepository;
 
     @Autowired
     private NotificationService notificationService;
@@ -160,6 +166,13 @@ public class S3StorageServiceImpl implements StorageService {
         if (savedDocument.getOwner() != null) {
             notificationService.createNewDocumentNotification(savedDocument.getOwner(), savedDocument);
         }
+
+        AuditLog auditLog = new AuditLog();
+        auditLog.setAction(AuditAction.UPLOAD);
+        auditLog.setCreatedAt(LocalDateTime.now());
+        auditLog.setUser(savedDocument.getOwner());
+        auditLog.setDocument(savedDocument);
+        auditLogRepository.save(auditLog);
 
         return savedDocument;
     }

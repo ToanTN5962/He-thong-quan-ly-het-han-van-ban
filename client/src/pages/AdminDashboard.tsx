@@ -421,11 +421,8 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-1">
-                          <button title="Sá»­a" className="p-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
+                          <button title="Sửa" className="p-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
                             <Edit3 size={16} />
-                          </button>
-                          <button title="Gia háº¡n/Reset" className="p-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
-                            <RotateCcw size={16} />
                           </button>
                           <button title={user.status === 'Bị khóa' ? 'Mở khóa' : 'Khóa'} className="p-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
                             {user.status === 'Bị khóa' ? (

@@ -3,8 +3,11 @@ package com.toan.server.service;
 import com.toan.server.dto.request.LoginRequest;
 import com.toan.server.dto.request.RegisterRequest;
 import com.toan.server.dto.response.LoginResponse;
+import com.toan.server.entity.AuditLog;
 import com.toan.server.entity.User;
+import com.toan.server.enums.AuditAction;
 import com.toan.server.enums.Role;
+import com.toan.server.repository.AuditLogRepository;
 import com.toan.server.repository.UserRepository;
 import com.toan.server.security.JwtTokenProvider;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -15,11 +18,14 @@ import java.time.LocalDateTime;
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final AuditLogRepository auditLogRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider tokenProvider;
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtTokenProvider tokenProvider) {
+    public AuthService(UserRepository userRepository, AuditLogRepository auditLogRepository,
+                       PasswordEncoder passwordEncoder, JwtTokenProvider tokenProvider) {
         this.userRepository = userRepository;
+        this.auditLogRepository = auditLogRepository;
         this.passwordEncoder = passwordEncoder;
         this.tokenProvider = tokenProvider;
     }
@@ -69,7 +75,13 @@ public class AuthService {
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
 
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
+
+        AuditLog auditLog = new AuditLog();
+        auditLog.setAction(AuditAction.REGISTER);
+        auditLog.setCreatedAt(LocalDateTime.now());
+        auditLog.setUser(savedUser);
+        auditLogRepository.save(auditLog);
 
         return "Đăng ký tài khoản thành công!";
     }

@@ -4,5 +4,7 @@ public enum AuditAction {
     CREATE,
     UPDATE,
     DELETE,
-    LOGIN
+    LOGIN,
+    UPLOAD,
+    REGISTER
 }
