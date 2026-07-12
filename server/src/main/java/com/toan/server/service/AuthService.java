@@ -32,14 +32,14 @@ public class AuthService {
 
     public LoginResponse authenticateUser(LoginRequest loginRequest) {
         User user = userRepository.findByEmail(loginRequest.getEmail())
-                .orElseThrow(() -> new RuntimeException("Email hoặc mật khẩu không chính xác!"));
+                .orElseThrow(() -> new RuntimeException("Email hoáº·c máº­t kháº©u khÃ´ng chÃ­nh xÃ¡c!"));
 
         if (Boolean.FALSE.equals(user.getIsActive())) {
-            throw new RuntimeException("Tài khoản của bạn đã bị khóa!");
+            throw new RuntimeException("T\u00e0i kho\u1ea3n \u0111\u00e3 b\u1ecb kh\u00f3a, vui l\u00f2ng li\u00ean h\u1ec7 admin");
         }
 
         if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Email hoặc mật khẩu không chính xác!");
+            throw new RuntimeException("Email hoáº·c máº­t kháº©u khÃ´ng chÃ­nh xÃ¡c!");
         }
 
         String token = tokenProvider.generateToken(user);
@@ -48,17 +48,17 @@ public class AuthService {
 
     public String registerUser(RegisterRequest registerRequest) {
         if (!registerRequest.getPassword().equals(registerRequest.getConfirmPassword())) {
-            throw new RuntimeException("Mật khẩu xác nhận không trùng khớp!");
+            throw new RuntimeException("Máº­t kháº©u xÃ¡c nháº­n khÃ´ng trÃ¹ng khá»›p!");
         }
 
         if (userRepository.existsByEmail(registerRequest.getEmail())) {
-            throw new RuntimeException("Email này đã được sử dụng bởi một tài khoản khác!");
+            throw new RuntimeException("Email nÃ y Ä‘Ã£ Ä‘Æ°á»£c sá»­ dá»¥ng bá»Ÿi má»™t tÃ i khoáº£n khÃ¡c!");
         }
 
         String baseUsername = registerRequest.getEmail().split("@")[0];
         String username = baseUsername;
         int counter = 1;
-        // Vòng lặp phòng trường hợp hai email trùng tiền tố trước @
+        // VÃ²ng láº·p phÃ²ng trÆ°á»ng há»£p hai email trÃ¹ng tiá»n tá»‘ trÆ°á»›c @
         while (userRepository.existsByUsername(username)) {
             username = baseUsername + counter;
             counter++;
@@ -83,6 +83,6 @@ public class AuthService {
         auditLog.setUser(savedUser);
         auditLogRepository.save(auditLog);
 
-        return "Đăng ký tài khoản thành công!";
+        return "ÄÄƒng kÃ½ tÃ i khoáº£n thÃ nh cÃ´ng!";
     }
 }

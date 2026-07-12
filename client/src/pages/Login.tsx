@@ -25,7 +25,13 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password })
       });
 
-      const data = await resp.json();
+      const responseText = await resp.text();
+      let data: { [key: string]: string } = {};
+      try {
+        data = responseText ? JSON.parse(responseText) : {};
+      } catch {
+        data = { error: responseText };
+      }
 
       if (resp.ok) {
         const token = `${data.type} ${data.token}`;
@@ -38,21 +44,19 @@ export default function LoginPage() {
         if (role.includes('admin')) navigate('/admin');
         else navigate('/user');
       } else {
-        alert(data.error || 'Đăng nhập thất bại. Vui lòng kiểm tra thông tin.');
+        alert(data.error || data.message || 'Đăng nhập thất bại. Vui lòng kiểm tra thông tin.');
       }
     } catch (err) {
       console.error('Login error:', err);
-      alert('Không thể kết nối đến máy chủ. Vui lòng thử lại.');
+      alert('Không thể kết nối với máy chủ. Vui lòng thử lại.');
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#f5f5f5] p-4 font-sans">
       <div className="w-full max-w-[1000px] flex rounded-[32px] overflow-hidden bg-white shadow-2xl">
-        
-        {/* Cột bên trái - Nội dung quảng bá */}
+
         <div className="hidden lg:flex w-1/2 bg-[#e53935] p-12 flex-col justify-between relative overflow-hidden">
-          {/* Họa tiết trang trí */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-20 -mt-20 blur-3xl"></div>
           
           <div className="relative z-10">
@@ -62,17 +66,17 @@ export default function LoginPage() {
             </div>
 
             <h1 className="text-5xl font-bold text-white leading-tight mb-8">
-              Quản lý tài liệu,<br />Làm chủ thời gian.
+              Quản lý tài liệu.<br />Làm chủ thời gian.
             </h1>
             
             <p className="text-white/80 text-lg leading-relaxed max-w-md">
               Hệ thống theo dõi và cảnh báo hết hạn tài liệu thông minh giúp bạn không bao giờ bỏ lỡ một thời hạn quan trọng nào.
+
             </p>
           </div>
 
         </div>
 
-        {/* Cột bên phải - Form đăng nhập */}
         <div className="w-full lg:w-1/2 p-12 lg:p-16 flex flex-col justify-center">
           <div className="max-w-md mx-auto w-full">
             <h2 className="text-3xl font-bold text-slate-900 mb-2">Đăng nhập vào hệ thống</h2>
@@ -105,7 +109,7 @@ export default function LoginPage() {
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                   <input 
                     type={showPassword ? 'text' : 'password'} 
-                    placeholder="••••••••"
+                    placeholder="******"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full pl-12 pr-12 py-3.5 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-[#e53935]/10 focus:border-[#e53935] focus:bg-white outline-none transition-all text-sm"
@@ -169,7 +173,7 @@ export default function LoginPage() {
             {/* Footer Links */}
             <p className="mt-12 text-center text-sm text-slate-500">
               Chưa có tài khoản?{' '}
-              <button className="font-bold text-[#e53935] hover:underline" onClick = {() => navigate('/register')}>Đăng ký tài khoản mới</button>
+              <button className="font-bold text-[#e53935] hover:underline" onClick = {() => navigate('/register')}>Đăng ký tài khoản</button>
             </p>
           </div>
         </div>
