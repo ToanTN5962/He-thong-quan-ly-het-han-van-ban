@@ -1,4 +1,5 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   FileText,
@@ -85,6 +86,10 @@ export default function UserHomePage() {
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string>('System Admin');
+  const [userEmail, setUserEmail] = useState<string>('admin@docwatch.io');
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const navigate = useNavigate();
 
   const uploadCategories = ['Hợp đồng', 'Giấy phép', 'Bảo hiểm', 'Chứng chỉ', 'Khác'];
 
@@ -137,10 +142,30 @@ export default function UserHomePage() {
   });
 
   // Hàm reset bộ lọc về mặc định
+  useEffect(() => {
+    const storedName = localStorage.getItem('userFullname');
+    const storedEmail = localStorage.getItem('userEmail');
+
+    if (storedName) {
+      setUserName(storedName);
+    }
+    if (storedEmail) {
+      setUserEmail(storedEmail);
+    }
+  }, []);
+
   const handleResetFilters = () => {
     setSearchTerm('');
     setSelectedCategory('Tất cả danh mục');
     setSelectedStatus('Tất cả trạng thái');
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userFullname');
+    localStorage.removeItem('userRole');
+    navigate('/login');
   };
 
   return (
@@ -158,11 +183,16 @@ export default function UserHomePage() {
         {/* User Info */}
         <div className="flex items-center gap-3 p-4 mb-6">
           <div className="w-10 h-10 rounded-full bg-[#e53935] flex items-center justify-center text-white font-semibold">
-            SA
+            {userName
+              .split(' ')
+              .map((part) => part[0])
+              .slice(0, 2)
+              .join('')
+              .toUpperCase()}
           </div>
           <div>
-            <h4 className="text-sm font-bold">System Admin</h4>
-            <p className="text-xs text-slate-500">admin@docwatch.io</p>
+            <h4 className="text-sm font-bold">{userName}</h4>
+            <p className="text-xs text-slate-500">{userEmail}</p>
           </div>
         </div>
 
@@ -191,13 +221,41 @@ export default function UserHomePage() {
 
         {/* Sidebar Footer */}
         <div className="p-4 border-t border-slate-100">
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:text-[#e53935] hover:bg-red-50 rounded-lg transition-colors">
+          <button
+            onClick={() => setShowLogoutConfirm(true)}
+            className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:text-[#e53935] hover:bg-red-50 rounded-lg transition-colors"
+          >
             <LogOut size={20} />
             <span className="text-sm font-medium">Đăng xuất</span>
           </button>
           <p className="text-[10px] text-center mt-4 text-slate-400">Phiên bản V1.0.4</p>
         </div>
       </aside>
+
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4 py-6">
+          <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
+            <h3 className="text-lg font-bold text-slate-900">Xác nhận đăng xuất</h3>
+            <p className="mt-3 text-sm text-slate-600">
+              Bạn có chắc chắn muốn đăng xuất khỏi tài khoản không?
+            </p>
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleLogout}
+                className="rounded-2xl bg-[#e53935] px-4 py-2 text-sm font-semibold text-white hover:bg-[#c62828] transition-colors"
+              >
+                Đăng xuất
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ================= MAIN CONTENT ================= */}
       <main className="flex-1 p-8 overflow-y-auto">
