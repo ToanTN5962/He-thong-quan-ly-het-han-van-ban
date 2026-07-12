@@ -18,4 +18,5 @@ public interface StorageService {
     );
     void deleteFile(String fileUrl);
     java.util.List<String> listAllFiles();
+    String generatePresignedUrl(String fileKey);
 }

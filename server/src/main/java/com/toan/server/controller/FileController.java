@@ -2,6 +2,8 @@ package com.toan.server.controller;
 
 import com.toan.server.entity.Document;
 import com.toan.server.service.StorageService;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -72,5 +74,11 @@ public class FileController {
         } catch (RuntimeException e) {
             return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
         }
+    }
+
+    @GetMapping("/preview")
+    public ResponseEntity<String> getFilePreviewUrl(@RequestParam String fileName) {
+        String url = storageService.generatePresignedUrl(fileName);
+        return ResponseEntity.ok(url);
     }
 }

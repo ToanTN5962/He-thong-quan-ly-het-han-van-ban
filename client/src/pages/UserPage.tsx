@@ -44,6 +44,7 @@ interface Document {
   attachments?: Attachment[];
 }
 
+type FileAction = 'PREVIEW' | 'DOWNLOAD';
 
 export default function UserHomePage() {
   const [activeTab, setActiveTab] = useState<string>('documents');
@@ -215,6 +216,38 @@ export default function UserHomePage() {
     localStorage.removeItem('userFullname');
     localStorage.removeItem('userRole');
     navigate('/login');
+  };
+
+  const handleActionWithPresignedUrl = async (attachment: Attachment, actionType: FileAction) => {
+    try {
+      const response = await fetch(
+        `http://localhost:8080/api/files/preview?fileName=${encodeURIComponent(attachment.filePath)}`
+      );
+      
+      if (!response.ok) {
+        throw new Error('Không thể lấy mã truy cập file');
+      }
+      
+      const presignedUrl = await response.text();
+
+      if (actionType === 'PREVIEW') {
+        setPreviewAttachment({
+          ...attachment,
+          filePath: presignedUrl 
+        });
+      } else if (actionType === 'DOWNLOAD') {
+        const link = document.createElement('a');
+        link.href = presignedUrl;
+        link.setAttribute('download', attachment.originalName);
+        link.setAttribute('target', '_blank');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (error) {
+      console.error("Lỗi khi xử lý file:", error);
+      alert("Không thể truy cập file này vào lúc này.");
+    }
   };
 
   return (
@@ -389,7 +422,7 @@ export default function UserHomePage() {
               <h4 className="text-sm font-semibold text-slate-500">File đính kèm</h4>
               {selectedDocument.attachments && selectedDocument.attachments.length > 0 ? (
                 <div className="mt-3 space-y-3">
-                  {selectedDocument.attachments.map((attachment) => (
+                  {selectedDocument.attachments.map((attachment: Attachment) => (
                     <div key={attachment.id} className="rounded-2xl border border-slate-200 p-4 bg-slate-50">
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <div>
@@ -399,22 +432,25 @@ export default function UserHomePage() {
                           </p>
                         </div>
                         <div className="flex flex-wrap items-center gap-2 mt-3 sm:mt-0">
+                          
+                          {/* Nút Xem trước */}
                           <button
                             type="button"
-                            onClick={() => setPreviewAttachment(attachment)}
+                            onClick={() => handleActionWithPresignedUrl(attachment, 'PREVIEW')}
                             className="rounded-2xl bg-[#e53935] px-4 py-2 text-xs font-semibold text-white hover:bg-[#c62828] transition-colors"
                           >
                             Xem trước
                           </button>
-                          <a
-                            href={attachment.filePath}
-                            target="_blank"
-                            rel="noreferrer"
-                            download={attachment.originalName}
+
+                          {/* Nút Tải về */}
+                          <button
+                            type="button"
+                            onClick={() => handleActionWithPresignedUrl(attachment, 'DOWNLOAD')}
                             className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
                           >
                             Tải về
-                          </a>
+                          </button>
+
                         </div>
                       </div>
                     </div>

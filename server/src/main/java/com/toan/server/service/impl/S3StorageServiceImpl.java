@@ -17,7 +17,8 @@ import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import java.util.stream.Collectors;
@@ -28,12 +29,12 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @Service
 public class S3StorageServiceImpl implements StorageService {
 
     private final S3Client s3Client;
+    private final S3Presigner s3Presigner;
 
     @Autowired
     private DocumentRepository documentRepository;
@@ -53,9 +54,10 @@ public class S3StorageServiceImpl implements StorageService {
     @Value("${aws.s3.region}")
     private String region;
 
-    public S3StorageServiceImpl(S3Client s3Client) {
-        this.s3Client = s3Client;
-    }
+    public S3StorageServiceImpl(S3Client s3Client, S3Presigner s3Presigner) {
+    this.s3Client = s3Client;
+    this.s3Presigner = s3Presigner;
+}
 
     @Override
     public Document uploadFile(
@@ -173,5 +175,26 @@ public class S3StorageServiceImpl implements StorageService {
         String key = fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
         
         s3Client.deleteObject(builder -> builder.bucket(bucketName).key(key));
+    }
+
+    @Override
+    public String generatePresignedUrl(String fileUrlOrKey) {
+        String key = fileUrlOrKey.contains("/") 
+                ? fileUrlOrKey.substring(fileUrlOrKey.lastIndexOf("/") + 1) 
+                : fileUrlOrKey;
+
+        software.amazon.awssdk.services.s3.model.GetObjectRequest getObjectRequest = 
+                software.amazon.awssdk.services.s3.model.GetObjectRequest.builder()
+                        .bucket(bucketName)
+                        .key(key)
+                        .build();
+
+        GetObjectPresignRequest presignedRequest = 
+                GetObjectPresignRequest.builder()
+                        .signatureDuration(java.time.Duration.ofMinutes(15)) 
+                        .getObjectRequest(getObjectRequest)
+                        .build();
+
+        return s3Presigner.presignGetObject(presignedRequest).url().toString();
     }
 }
