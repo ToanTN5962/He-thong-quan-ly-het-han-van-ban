@@ -22,4 +22,6 @@ public interface DocumentRepository extends JpaRepository<Document, Long> {
     );
 
     List<Document> findByStatusIn(List<DocumentStatus> statuses);
+
+    List<Document> findByOwnerEmail(String ownerEmail);
 }
