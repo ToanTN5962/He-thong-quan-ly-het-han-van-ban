@@ -14,9 +14,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Calendar,
+  CheckCircle,
+  AlertCircle,
+  Loader2,
 } from 'lucide-react';
 
-// Định nghĩa Interface rõ ràng cho Attachment và Document
 interface Attachment {
   id: string;
   originalName: string;
@@ -51,6 +53,10 @@ interface NotificationItem {
 }
 
 type FileAction = 'PREVIEW' | 'DOWNLOAD';
+type UploadResult = {
+  type: 'success' | 'error';
+  message: string;
+};
 
 export default function UserHomePage() {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
@@ -67,8 +73,8 @@ export default function UserHomePage() {
   const [uploadExpiryDate, setUploadExpiryDate] = useState('');
   const [uploadDescription, setUploadDescription] = useState('');
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
-  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
-  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
   const [userName, setUserName] = useState<string>('System Admin');
   const [userEmail, setUserEmail] = useState<string>('admin@docwatch.io');
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -76,6 +82,7 @@ export default function UserHomePage() {
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
   const [showDocumentModal, setShowDocumentModal] = useState(false);
   const [previewAttachment, setPreviewAttachment] = useState<Attachment | null>(null);
+  const [documentPage, setDocumentPage] = useState(1);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const navigate = useNavigate();
 
@@ -112,8 +119,7 @@ export default function UserHomePage() {
     setUploadExpiryDate('');
     setUploadDescription('');
     setUploadFiles([]);
-    setUploadError(null);
-    setUploadStatus(null);
+    setUploadResult(null);
   };
 
   const addUploadFiles = (files: FileList | null) => {
@@ -199,7 +205,6 @@ export default function UserHomePage() {
     }
   };
 
-  // Logic lọc tài liệu theo Tìm kiếm, Danh mục và Trạng thái
   const filteredDocuments = documents.filter((doc) => {
     const matchesSearch =
       doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -216,8 +221,24 @@ export default function UserHomePage() {
 
     return matchesSearch && matchesCategory && matchesStatus;
   });
+  const documentsPerPage = 10;
+  const totalDocumentPages = Math.max(Math.ceil(filteredDocuments.length / documentsPerPage), 1);
+  const currentDocumentPage = Math.min(documentPage, totalDocumentPages);
+  const paginatedDocuments = filteredDocuments.slice(
+    (currentDocumentPage - 1) * documentsPerPage,
+    currentDocumentPage * documentsPerPage
+  );
+  const visibleDocumentPages = Array.from({ length: totalDocumentPages }, (_, index) => index + 1)
+    .filter((page) =>
+      page === 1 ||
+      page === totalDocumentPages ||
+      Math.abs(page - currentDocumentPage) <= 1
+    );
 
-  // Hàm reset bộ lọc về mặc định
+  useEffect(() => {
+    setDocumentPage(1);
+  }, [searchTerm, selectedCategory, selectedStatus]);
+
   useEffect(() => {
     const storedName = localStorage.getItem('userFullname');
     const storedEmail = localStorage.getItem('userEmail');
@@ -467,7 +488,6 @@ export default function UserHomePage() {
                         </div>
                         <div className="flex flex-wrap items-center gap-2 mt-3 sm:mt-0">
                           
-                          {/* Nút Xem trước */}
                           <button
                             type="button"
                             onClick={() => handleActionWithPresignedUrl(attachment, 'PREVIEW')}
@@ -476,7 +496,6 @@ export default function UserHomePage() {
                             Xem trước
                           </button>
 
-                          {/* Nút Tải về */}
                           <button
                             type="button"
                             onClick={() => handleActionWithPresignedUrl(attachment, 'DOWNLOAD')}
@@ -533,19 +552,6 @@ export default function UserHomePage() {
             <p className="text-slate-500">Theo dõi và quản lý thời hạn các văn bản pháp lý.</p>
           </div>
           <div className="flex items-center gap-4">
-            <div className="relative">
-              <Search
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                size={18}
-              />
-              <input
-                type="text"
-                placeholder="Tìm kiếm tài liệu..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-slate-200 rounded-full w-80 focus:outline-none focus:ring-2 focus:ring-[#e53935]/20 focus:border-[#e53935] transition-all"
-              />
-            </div>
             <button
               onClick={() => {
                 setShowUploadModal(true);
@@ -583,6 +589,19 @@ export default function UserHomePage() {
                 <div>
                   <h2 className="text-xl font-bold text-slate-900">Tài liệu của tôi</h2>
                   <p className="text-sm text-slate-500">Danh sách tài liệu đã upload và tình trạng hiện tại.</p>
+                </div>
+                <div className="relative ml-auto">
+                  <Search
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                    size={18}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Tìm kiếm tài liệu..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 pr-4 py-2 border border-slate-200 rounded-full w-80 focus:outline-none focus:ring-2 focus:ring-[#e53935]/20 focus:border-[#e53935] transition-all"
+                  />
                 </div>
               </div>
 
@@ -662,7 +681,7 @@ export default function UserHomePage() {
                         <td colSpan={5} className="px-6 py-10 text-center text-sm text-red-500">{documentError}</td>
                       </tr>
                     ) : filteredDocuments.length > 0 ? (
-                      filteredDocuments.map((doc) => (
+                      paginatedDocuments.map((doc) => (
                         <tr key={doc.id} className="hover:bg-slate-50/50 transition-colors group">
                           <td className="px-6 py-5">
                             <div className="flex items-center gap-4">
@@ -749,17 +768,26 @@ export default function UserHomePage() {
 
                 <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
                   <span className="text-xs text-slate-500">
-                    Hiển thị 1 - {filteredDocuments.length} trong {filteredDocuments.length} tài liệu
+                    {filteredDocuments.length > 0
+                      ? `Hiển thị ${((currentDocumentPage - 1) * documentsPerPage + 1).toLocaleString()} - ${Math.min(currentDocumentPage * documentsPerPage, filteredDocuments.length).toLocaleString()} trong ${filteredDocuments.length.toLocaleString()} tài liệu`
+                      : 'Không có tài liệu'}
                   </span>
                   <div className="flex items-center gap-2">
-                    <button className="p-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition-colors">
+                    <button
+                      type="button"
+                      disabled={currentDocumentPage === 1}
+                      onClick={() => setDocumentPage((page) => Math.max(page - 1, 1))}
+                      className="p-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
                       <ChevronLeft size={16} />
                     </button>
-                    {[1, 2, 3].map((page) => (
+                    {visibleDocumentPages.map((page) => (
                       <button
                         key={page}
+                        type="button"
+                        onClick={() => setDocumentPage(page)}
                         className={`w-8 h-8 text-xs font-bold rounded-lg transition-all ${
-                          page === 1
+                          page === currentDocumentPage
                             ? 'bg-[#e53935] text-white shadow-md shadow-red-200'
                             : 'text-slate-600 hover:bg-slate-100'
                         }`}
@@ -767,7 +795,12 @@ export default function UserHomePage() {
                         {page}
                       </button>
                     ))}
-                    <button className="p-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+                    <button
+                      type="button"
+                      disabled={currentDocumentPage === totalDocumentPages}
+                      onClick={() => setDocumentPage((page) => Math.min(page + 1, totalDocumentPages))}
+                      className="p-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
                       <ChevronRight size={16} />
                     </button>
                   </div>
@@ -818,9 +851,24 @@ export default function UserHomePage() {
                   <h2 className="text-2xl font-bold text-slate-900">Tải lên tài liệu mới</h2>
                   <p className="text-sm text-slate-500">Nhập thông tin tài liệu và chọn file để upload.</p>
                 </div>
+                <div className="relative ml-auto">
+                  <Search
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                    size={18}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Tìm kiếm tài liệu..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    disabled={isUploading}
+                    className="pl-10 pr-4 py-2 border border-slate-200 rounded-full w-80 focus:outline-none focus:ring-2 focus:ring-[#e53935]/20 focus:border-[#e53935] transition-all"
+                  />
+                </div>
                 <button
                   onClick={() => setShowUploadModal(false)}
-                  className="text-slate-500 hover:text-slate-900 transition-colors"
+                  disabled={isUploading}
+                  className="text-slate-500 hover:text-slate-900 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Đóng
                 </button>
@@ -830,11 +878,17 @@ export default function UserHomePage() {
                 <form
                   onSubmit={async (e) => {
                   e.preventDefault();
-                  setUploadError(null);
-                  setUploadStatus(null);
+                  if (isUploading) {
+                    return;
+                  }
+
+                  setUploadResult(null);
 
                   if (uploadFiles.length === 0) {
-                    setUploadError('Vui lòng chọn ít nhất một file để upload.');
+                    setUploadResult({
+                      type: 'error',
+                      message: 'Vui lòng chọn ít nhất một file để upload.',
+                    });
                     return;
                   }
 
@@ -854,25 +908,41 @@ export default function UserHomePage() {
                     formData.append('ownerEmail', ownerEmail);
                   }
 
+                  setIsUploading(true);
                   try {
                     const response = await fetch('http://localhost:8080/api/files/upload', {
                       method: 'POST',
                       body: formData,
                     });
 
-                    const data = await response.json();
+                    const data = await response.json().catch(() => ({}));
                     if (response.ok) {
-                      setUploadStatus('Upload thành công! File đã được lưu vào hệ thống.');
+                      setUploadResult({
+                        type: 'success',
+                        message: 'Upload thành công! File đã được lưu vào hệ thống.',
+                      });
+                      if (ownerEmail) {
+                        await fetchUserDocuments(ownerEmail);
+                      }
                     } else {
-                      setUploadError(data.error || 'Có lỗi khi upload file.');
+                      setUploadResult({
+                        type: 'error',
+                        message: data.error || 'Có lỗi khi upload file.',
+                      });
                     }
                   } catch (error) {
-                    setUploadError('Không thể kết nối đến server. Vui lòng thử lại.');
+                    setUploadResult({
+                      type: 'error',
+                      message: 'Không thể kết nối đến server. Vui lòng thử lại.',
+                    });
                     console.error(error);
+                  } finally {
+                    setIsUploading(false);
                   }
                 }}
                 className="space-y-6 px-8 py-6"
               >
+                <fieldset disabled={isUploading} className="space-y-6 disabled:opacity-70">
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                   <label className="block">
                     <span className="text-sm font-semibold text-slate-600">Mã tài liệu</span>
@@ -986,36 +1056,67 @@ export default function UserHomePage() {
                   )}
                 </label>
 
-                {uploadError && (
-                  <div className="rounded-2xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-700">
-                    {uploadError}
-                  </div>
-                )}
-                {uploadStatus && (
-                  <div className="rounded-2xl bg-emerald-50 border border-emerald-100 px-4 py-3 text-sm text-emerald-700">
-                    {uploadStatus}
-                  </div>
-                )}
-
                 <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
                   <button
                     type="button"
                     onClick={() => setShowUploadModal(false)}
-                    className="w-full rounded-2xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-colors sm:w-auto"
+                    disabled={isUploading}
+                    className="w-full rounded-2xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-colors disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
                   >
                     Hủy
                   </button>
                   <button
                     type="submit"
-                    className="w-full rounded-2xl bg-[#e53935] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-red-200 hover:bg-[#c62828] transition-colors sm:w-auto"
+                    disabled={isUploading}
+                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#e53935] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-red-200 hover:bg-[#c62828] transition-colors disabled:cursor-not-allowed disabled:bg-slate-400 disabled:shadow-none sm:w-auto"
                   >
-                    Gửi lên
+                    {isUploading && <Loader2 size={18} className="animate-spin" />}
+                    {isUploading ? 'Đang gửi...' : 'Gửi lên'}
                   </button>
                 </div>
+                </fieldset>
               </form>
             </div>
           </div>
         </div>
+        )}
+
+        {uploadResult && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 px-4">
+            <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+              <div className="flex items-start gap-4">
+                <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl ${
+                  uploadResult.type === 'success'
+                    ? 'bg-emerald-50 text-emerald-600'
+                    : 'bg-red-50 text-red-600'
+                }`}>
+                  {uploadResult.type === 'success' ? <CheckCircle size={26} /> : <AlertCircle size={26} />}
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-lg font-bold text-slate-900">
+                    {uploadResult.type === 'success' ? 'Gửi tài liệu thành công' : 'Gửi tài liệu thất bại'}
+                  </h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">{uploadResult.message}</p>
+                </div>
+              </div>
+              <div className="mt-6 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const wasSuccess = uploadResult.type === 'success';
+                    setUploadResult(null);
+                    if (wasSuccess) {
+                      setShowUploadModal(false);
+                      resetUploadForm();
+                    }
+                  }}
+                  className="rounded-2xl bg-[#e53935] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-red-200 transition-colors hover:bg-[#c62828]"
+                >
+                  Đóng
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </main>
     </div>
