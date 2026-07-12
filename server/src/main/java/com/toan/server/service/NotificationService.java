@@ -17,32 +17,27 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
 
     public void createWarningNotification(User user, Document document, long daysRemaining) {
-
         Notification notification = new Notification();
 
         notification.setUser(user);
         notification.setDocument(document);
-
         notification.setTitle("Cảnh báo văn bản sắp hết hạn");
 
         String content = "Văn bản \"" + document.getTitle() +
                 "\" sẽ hết hạn sau " + daysRemaining + " ngày.";
-
         notification.setContent(content);
 
-        //Đảm bảo không tạo thông báo trùng trong trường hợp cron chạy 2 lần trong ngày
+        // Đảm bảo không tạo thông báo trùng trong trường hợp cron chạy 2 lần trong ngày.
         if (notificationRepository.existsByUserAndDocumentAndNotificationTypeAndContent(
-            user,
-            document,
-            NotificationType.EXPIRING,
-            content)) {
-                return;
-            }
+                user,
+                document,
+                NotificationType.EXPIRING,
+                content)) {
+            return;
+        }
 
         notification.setNotificationType(NotificationType.EXPIRING);
-
         notification.setIsRead(false);
-
         notification.setCreatedAt(LocalDateTime.now());
 
         notificationRepository.save(notification);
@@ -53,21 +48,45 @@ public class NotificationService {
 
         notification.setUser(user);
         notification.setDocument(document);
-
         notification.setTitle("Tài liệu mới đã được tải lên");
 
         String content = "Bạn đã tải lên tài liệu \"" + document.getTitle() + "\".";
         notification.setContent(content);
 
         if (notificationRepository.existsByUserAndDocumentAndNotificationTypeAndContent(
-            user,
-            document,
-            NotificationType.NEW_DOCUMENT,
-            content)) {
-                return;
-            }
+                user,
+                document,
+                NotificationType.NEW_DOCUMENT,
+                content)) {
+            return;
+        }
 
         notification.setNotificationType(NotificationType.NEW_DOCUMENT);
+        notification.setIsRead(false);
+        notification.setCreatedAt(LocalDateTime.now());
+
+        notificationRepository.save(notification);
+    }
+
+    public void createDeletedDocumentNotification(User user, Document document) {
+        Notification notification = new Notification();
+
+        notification.setUser(user);
+        notification.setDocument(document);
+        notification.setTitle("Văn bản đã được xóa");
+
+        String content = "Văn bản \"" + document.getTitle() + "\" đã được xóa khỏi danh sách tài liệu của bạn.";
+        notification.setContent(content);
+
+        if (notificationRepository.existsByUserAndDocumentAndNotificationTypeAndContent(
+                user,
+                document,
+                NotificationType.DELETED_DOCUMENT,
+                content)) {
+            return;
+        }
+
+        notification.setNotificationType(NotificationType.DELETED_DOCUMENT);
         notification.setIsRead(false);
         notification.setCreatedAt(LocalDateTime.now());
 

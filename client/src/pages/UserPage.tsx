@@ -83,6 +83,8 @@ export default function UserHomePage() {
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
   const [showDocumentModal, setShowDocumentModal] = useState(false);
   const [previewAttachment, setPreviewAttachment] = useState<Attachment | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Document | null>(null);
+  const [isDeletingDocument, setIsDeletingDocument] = useState(false);
   const [documentPage, setDocumentPage] = useState(1);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const navigate = useNavigate();
@@ -136,6 +138,34 @@ export default function UserHomePage() {
         )
       );
       console.error(error);
+    }
+  };
+
+  const deleteDocument = async () => {
+    if (!deleteTarget || isDeletingDocument) {
+      return;
+    }
+
+    setIsDeletingDocument(true);
+    try {
+      const actorEmail = userEmail || localStorage.getItem('userEmail') || '';
+      const response = await fetch(
+        `http://localhost:8080/api/documents/${encodeURIComponent(deleteTarget.id)}?userEmail=${encodeURIComponent(actorEmail)}`,
+        { method: 'DELETE' }
+      );
+
+      if (!response.ok) {
+        throw new Error('Không thể xóa văn bản. Vui lòng thử lại.');
+      }
+
+      setDocuments((items) => items.filter((item) => item.id !== deleteTarget.id));
+      setDeleteTarget(null);
+      await fetchNotifications(actorEmail);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Có lỗi khi xóa văn bản.');
+      console.error(error);
+    } finally {
+      setIsDeletingDocument(false);
     }
   };
 
@@ -780,6 +810,7 @@ export default function UserHomePage() {
                               </button>
                               <button
                                 title="Xóa"
+                                onClick={() => setDeleteTarget(doc)}
                                 className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                               >
                                 <Trash2 size={18} />
@@ -1152,6 +1183,46 @@ export default function UserHomePage() {
                   className="rounded-2xl bg-[#e53935] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-red-200 transition-colors hover:bg-[#c62828]"
                 >
                   Đóng
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {deleteTarget && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 px-4">
+            <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-600">
+                  <Trash2 size={26} />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-lg font-bold text-slate-900">Xác nhận xóa văn bản</h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                    Bạn có chắc chắn muốn xóa văn bản "{deleteTarget.title}" không?
+                  </p>
+                  <p className="mt-2 text-xs text-slate-500">
+                    Văn bản sẽ được xóa mềm khỏi danh sách và hệ thống sẽ ghi nhận lịch sử thao tác.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => setDeleteTarget(null)}
+                  disabled={isDeletingDocument}
+                  className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Không
+                </button>
+                <button
+                  type="button"
+                  onClick={deleteDocument}
+                  disabled={isDeletingDocument}
+                  className="flex items-center justify-center gap-2 rounded-2xl bg-red-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-red-200 transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-slate-400 disabled:shadow-none"
+                >
+                  {isDeletingDocument && <Loader2 size={18} className="animate-spin" />}
+                  {isDeletingDocument ? 'Đang xóa...' : 'Có, xóa văn bản'}
                 </button>
               </div>
             </div>

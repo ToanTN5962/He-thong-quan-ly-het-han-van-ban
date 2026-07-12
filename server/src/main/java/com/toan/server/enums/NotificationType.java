@@ -3,5 +3,6 @@ package com.toan.server.enums;
 public enum NotificationType {
     EXPIRING,
     EXPIRED,
-    NEW_DOCUMENT
+    NEW_DOCUMENT,
+    DELETED_DOCUMENT
 }

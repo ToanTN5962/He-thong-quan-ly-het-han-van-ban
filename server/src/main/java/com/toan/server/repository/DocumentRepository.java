@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -42,6 +43,16 @@ public interface DocumentRepository extends JpaRepository<Document, Long> {
         LEFT JOIN FETCH d.category c
         LEFT JOIN FETCH d.attachments a
         WHERE o.email = :ownerEmail
+        ORDER BY d.createdAt DESC
     """)
     List<Document> findByOwnerEmailOrderByCreatedAtDesc(@Param("ownerEmail") String ownerEmail);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+        UPDATE Document d
+        SET d.deletedAt = CURRENT_TIMESTAMP
+        WHERE d.id = :id
+          AND d.deletedAt IS NULL
+    """)
+    int softDeleteById(@Param("id") Long id);
 }

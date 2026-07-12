@@ -1,9 +1,11 @@
 package com.toan.server.controller;
 
 import com.toan.server.entity.Document;
+import com.toan.server.repository.AttachmentRepository;
 import com.toan.server.service.StorageService;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -15,9 +17,11 @@ import java.util.Map;
 public class FileController {
 
     private final StorageService storageService;
+    private final AttachmentRepository attachmentRepository;
 
-    public FileController(StorageService storageService) {
+    public FileController(StorageService storageService, AttachmentRepository attachmentRepository) {
         this.storageService = storageService;
+        this.attachmentRepository = attachmentRepository;
     }
 
     @PostMapping("/upload")
@@ -79,5 +83,16 @@ public class FileController {
     public ResponseEntity<String> getFilePreviewUrl(@RequestParam String fileName) {
         String url = storageService.generatePresignedUrl(fileName);
         return ResponseEntity.ok(url);
+    }
+
+    @DeleteMapping("/{id}")
+    @Transactional
+    public ResponseEntity<?> deleteFile(@PathVariable Long id) {
+        int updatedRows = attachmentRepository.softDeleteById(id);
+        if (updatedRows == 0) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.noContent().build();
     }
 }
