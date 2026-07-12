@@ -8,8 +8,6 @@ import {
   LogOut,
   Search,
   PlusCircle,
-  Filter,
-  RefreshCw,
   Eye,
   Edit3,
   Trash2,
@@ -81,36 +79,26 @@ export default function UserHomePage() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const navigate = useNavigate();
 
-  const notificationItems: NotificationItem[] = [
-    {
-      id: 'n1',
-      title: 'Upload thành công',
-      message: 'Bạn đã tải lên file tài liệu mới thành công.',
-      time: '2 giờ trước',
-      variant: 'success',
-    },
-    {
-      id: 'n2',
-      title: 'Tài liệu sắp hết hạn trong 7 ngày',
-      message: 'Văn bản “Hợp đồng thuê nhà” sẽ hết hạn sau 7 ngày.',
-      time: '1 ngày trước',
-      variant: 'warning',
-    },
-    {
-      id: 'n3',
-      title: 'Tài liệu sắp hết hạn trong 15 ngày',
-      message: 'Văn bản “Giấy phép kinh doanh” sẽ hết hạn trong 15 ngày.',
-      time: '3 ngày trước',
-      variant: 'info',
-    },
-    {
-      id: 'n4',
-      title: 'Tài liệu sắp hết hạn trong 30 ngày',
-      message: 'Văn bản “Bảo hiểm xe” sẽ hết hạn trong 30 ngày.',
-      time: '5 ngày trước',
-      variant: 'info',
-    },
-  ];
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+
+  const fetchNotifications = async (email?: string) => {
+    if (!email) return;
+    try {
+      const resp = await fetch(`http://localhost:8080/api/notifications/user?email=${encodeURIComponent(email)}`);
+      if (!resp.ok) return;
+      const data = await resp.json();
+      const mapped: NotificationItem[] = (data || []).map((n: any) => ({
+        id: String(n.id || ''),
+        title: n.title || (n.notificationType || ''),
+        message: n.content || '',
+        time: n.createdAt ? new Date(n.createdAt).toLocaleString('vi-VN') : '',
+        variant: n.notificationType === 'NEW_DOCUMENT' ? 'success' : n.notificationType === 'EXPIRING' ? 'warning' : 'info',
+      }));
+      setNotifications(mapped);
+    } catch (e) {
+      console.error('Lỗi khi lấy thông báo:', e);
+    }
+  };
 
   const uploadCategories = ['Hợp đồng', 'Giấy phép', 'Bảo hiểm', 'Chứng chỉ', 'Khác'];
 
@@ -240,6 +228,7 @@ export default function UserHomePage() {
     if (storedEmail) {
       setUserEmail(storedEmail);
       fetchUserDocuments(storedEmail);
+      fetchNotifications(storedEmail);
     }
   }, []);
 
@@ -795,7 +784,7 @@ export default function UserHomePage() {
               <p className="mt-2 text-sm text-slate-500">Các thông báo mới nhất liên quan đến tài liệu của bạn.</p>
             </div>
             <div className="grid gap-4">
-              {notificationItems.map((item) => (
+              {notifications.map((item) => (
                 <div
                   key={item.id}
                   className={`rounded-3xl p-5 border ${

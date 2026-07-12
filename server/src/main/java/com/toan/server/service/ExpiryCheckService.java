@@ -41,7 +41,7 @@ public class ExpiryCheckService {
                 daysRemaining == 1) {
 
                 notificationService.createWarningNotification(
-                        doc.getOwner(), doc, daysRemaining
+                    doc.getOwner(), doc, daysRemaining
                 );
             }
         }

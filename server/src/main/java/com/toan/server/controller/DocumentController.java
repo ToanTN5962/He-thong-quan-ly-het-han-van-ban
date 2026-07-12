@@ -29,7 +29,7 @@ public class DocumentController {
             @RequestParam("ownerEmail") String ownerEmail
     ) {
         String decodedEmail = URLDecoder.decode(ownerEmail, StandardCharsets.UTF_8);
-        List<DocumentResponse> documents = documentRepository.findByOwnerEmail(decodedEmail).stream()
+        List<DocumentResponse> documents = documentRepository.findByOwnerEmailOrderByCreatedAtDesc(decodedEmail).stream()
                 .map(DocumentResponse::from)
                 .toList();
         return ResponseEntity.ok(documents);

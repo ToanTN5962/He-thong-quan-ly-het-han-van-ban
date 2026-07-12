@@ -14,4 +14,6 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
         NotificationType notificationType,
         String content
     );
+
+    java.util.List<Notification> findByUserEmailOrderByCreatedAtDesc(String email);
 }

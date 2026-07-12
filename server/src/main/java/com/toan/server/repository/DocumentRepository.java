@@ -31,5 +31,5 @@ public interface DocumentRepository extends JpaRepository<Document, Long> {
         LEFT JOIN FETCH d.attachments a
         WHERE o.email = :ownerEmail
     """)
-    List<Document> findByOwnerEmail(@Param("ownerEmail") String ownerEmail);
+    List<Document> findByOwnerEmailOrderByCreatedAtDesc(@Param("ownerEmail") String ownerEmail);
 }

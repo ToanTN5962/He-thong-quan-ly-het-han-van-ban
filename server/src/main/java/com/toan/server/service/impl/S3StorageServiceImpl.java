@@ -8,6 +8,7 @@ import com.toan.server.repository.AttachmentRepository;
 import com.toan.server.repository.DocumentCategoryRepository;
 import com.toan.server.repository.DocumentRepository;
 import com.toan.server.repository.UserRepository;
+import com.toan.server.service.NotificationService;
 import com.toan.server.service.StorageService;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +48,9 @@ public class S3StorageServiceImpl implements StorageService {
 
     @Autowired
     private AttachmentRepository attachmentRepository;
+
+    @Autowired
+    private NotificationService notificationService;
 
     @Value("${aws.s3.bucket-name}")
     private String bucketName;
@@ -151,6 +155,10 @@ public class S3StorageServiceImpl implements StorageService {
                 attachmentRepository.saveAll(attachments);
                 savedDocument.setAttachments(attachments);
             }
+        }
+
+        if (savedDocument.getOwner() != null) {
+            notificationService.createNewDocumentNotification(savedDocument.getOwner(), savedDocument);
         }
 
         return savedDocument;

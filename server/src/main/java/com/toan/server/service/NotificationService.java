@@ -47,4 +47,30 @@ public class NotificationService {
 
         notificationRepository.save(notification);
     }
+
+    public void createNewDocumentNotification(User user, Document document) {
+        Notification notification = new Notification();
+
+        notification.setUser(user);
+        notification.setDocument(document);
+
+        notification.setTitle("Tài liệu mới đã được tải lên");
+
+        String content = "Bạn đã tải lên tài liệu \"" + document.getTitle() + "\".";
+        notification.setContent(content);
+
+        if (notificationRepository.existsByUserAndDocumentAndNotificationTypeAndContent(
+            user,
+            document,
+            NotificationType.NEW_DOCUMENT,
+            content)) {
+                return;
+            }
+
+        notification.setNotificationType(NotificationType.NEW_DOCUMENT);
+        notification.setIsRead(false);
+        notification.setCreatedAt(LocalDateTime.now());
+
+        notificationRepository.save(notification);
+    }
 }

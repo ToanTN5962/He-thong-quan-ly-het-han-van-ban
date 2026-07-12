@@ -1,6 +1,5 @@
 package com.toan.server.dto.response;
 
-import com.toan.server.dto.response.AttachmentResponse;
 import com.toan.server.entity.Document;
 import com.toan.server.enums.DocumentStatus;
 
