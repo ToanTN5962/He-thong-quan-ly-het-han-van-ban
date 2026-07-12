@@ -24,6 +24,14 @@ public class DocumentController {
         this.documentRepository = documentRepository;
     }
 
+    @GetMapping
+    public ResponseEntity<List<DocumentResponse>> getAllDocuments() {
+        List<DocumentResponse> documents = documentRepository.findAllWithDetailsOrderByCreatedAtDesc().stream()
+                .map(DocumentResponse::from)
+                .toList();
+        return ResponseEntity.ok(documents);
+    }
+
     @GetMapping("/owner")
     public ResponseEntity<List<DocumentResponse>> getDocumentsByOwnerEmail(
             @RequestParam("ownerEmail") String ownerEmail

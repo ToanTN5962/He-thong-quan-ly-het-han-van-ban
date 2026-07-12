@@ -28,6 +28,16 @@ public interface DocumentRepository extends JpaRepository<Document, Long> {
     @Query("""
         SELECT DISTINCT d
         FROM Document d
+        LEFT JOIN FETCH d.owner o
+        LEFT JOIN FETCH d.category c
+        LEFT JOIN FETCH d.attachments a
+        ORDER BY d.createdAt DESC
+    """)
+    List<Document> findAllWithDetailsOrderByCreatedAtDesc();
+
+    @Query("""
+        SELECT DISTINCT d
+        FROM Document d
         JOIN FETCH d.owner o
         LEFT JOIN FETCH d.category c
         LEFT JOIN FETCH d.attachments a
