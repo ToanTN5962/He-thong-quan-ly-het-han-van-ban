@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   Plus,
   Edit3,
-  RotateCcw,
   Lock,
   Unlock,
   Filter,
@@ -27,16 +26,18 @@ interface User {
   name: string;
   email: string;
   role: 'Admin' | 'User';
-  status: 'Đang hoạt động' | 'Bị khóa';
+  status: UserStatus;
   color: string;
 }
 
+type UserStatus = 'Đang hoạt động' | 'Bị khóa';
+
 interface BackendUser {
   id: number;
-  name: string;
-  email: string;
-  role: 'ADMIN' | 'USER' | 'Admin' | 'User';
-  isActive: boolean;
+  name: string | null;
+  email: string | null;
+  role: 'ADMIN' | 'USER' | 'Admin' | 'User' | string | null;
+  isActive: boolean | null;
 }
 
 interface UserStats {
@@ -92,6 +93,8 @@ const initialDashboardData: DashboardData = {
 };
 
 const BACKEND_URL = 'http://localhost:8080';
+const ACTIVE_STATUS: UserStatus = 'Đang hoạt động';
+const LOCKED_STATUS: UserStatus = 'Bị khóa';
 
 const getInitials = (name: string | null | undefined) => {
   if (!name) {
@@ -103,11 +106,30 @@ const getInitials = (name: string | null | undefined) => {
   return (words[0][0] + words[words.length - 1][0]).toUpperCase();
 };
 
+const mapBackendUser = (user: BackendUser): User => {
+  const role = user.role?.toUpperCase() === 'ADMIN' ? 'Admin' : 'User';
+  const name = user.name?.trim() || user.email || 'Người dùng';
+  const email = user.email || '';
+  const status = user.isActive === false ? LOCKED_STATUS : ACTIVE_STATUS;
+
+  return {
+    id: user.id,
+    initials: getInitials(name),
+    name,
+    email,
+    role,
+    status,
+    color: role === 'Admin' ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-600',
+  };
+};
+
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [users, setUsers] = useState<User[]>([]);
   const [stats, setStats] = useState<UserStats>(initialStats);
   const [dashboardData, setDashboardData] = useState<DashboardData>(initialDashboardData);
+  const [userToToggle, setUserToToggle] = useState<User | null>(null);
+  const [isUpdatingUserStatus, setIsUpdatingUserStatus] = useState(false);
 
   const dashboardSummary = [
     { label: 'TỔNG SỐ VĂN BẢN', value: dashboardData.summary.totalDocuments.toLocaleString(), icon: FileText, color: 'text-[#e53935]', bgColor: 'bg-red-50' },
@@ -150,16 +172,7 @@ export default function AdminDashboard() {
           throw new Error('Không tìm thấy danh sách người dùng');
         }
         const data: BackendUser[] = await response.json();
-        const mappedUsers: User[] = data.map((user) => ({
-          id: user.id,
-          initials: getInitials(user.name),
-          name: user.name,
-          email: user.email,
-          role: (user.role === 'ADMIN' || user.role === 'Admin' ? 'Admin' : 'User') as 'Admin' | 'User',
-          status: user.isActive ? 'Đang hoạt động' : 'Bị khóa',
-          color: user.role === 'ADMIN' || user.role === 'Admin' ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-600',
-        }));
-        setUsers(mappedUsers);
+        setUsers(data.map(mapBackendUser));
       } catch (error) {
         console.error(error);
       }
@@ -182,6 +195,44 @@ export default function AdminDashboard() {
     fetchStats();
     fetchUsers();
   }, []);
+
+  const confirmToggleUserStatus = async () => {
+    if (!userToToggle) return;
+
+    const nextIsActive = userToToggle.status === LOCKED_STATUS;
+    setIsUpdatingUserStatus(true);
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/users/${userToToggle.id}/active`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ isActive: nextIsActive }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Không thể cập nhật trạng thái người dùng');
+      }
+
+      const updatedUser: BackendUser = await response.json();
+      const mappedUser = mapBackendUser(updatedUser);
+
+      setUsers((currentUsers) =>
+        currentUsers.map((user) => (user.id === mappedUser.id ? mappedUser : user))
+      );
+      setStats((currentStats) => ({
+        totalUsers: currentStats.totalUsers,
+        activeUsers: currentStats.activeUsers + (nextIsActive ? 1 : -1),
+        lockedUsers: currentStats.lockedUsers + (nextIsActive ? -1 : 1),
+      }));
+      setUserToToggle(null);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsUpdatingUserStatus(false);
+    }
+  };
 
   const userStats = [
     { label: 'Tổng số người dùng', value: stats.totalUsers.toLocaleString(), icon: UserRound, color: 'text-[#e53935]', bgColor: 'bg-red-50' },
@@ -413,8 +464,8 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-6 py-4 text-sm">
                         <div className="flex items-center gap-2">
-                          <div className={`w-1.5 h-1.5 rounded-full ${user.status === 'Đang hoạt động' ? 'bg-emerald-500' : 'bg-slate-400'}`}></div>
-                          <span className={`text-xs font-medium ${user.status === 'Đang hoạt động' ? 'text-emerald-600' : 'text-slate-400'}`}>
+                          <div className={`w-1.5 h-1.5 rounded-full ${user.status === ACTIVE_STATUS ? 'bg-emerald-500' : 'bg-slate-400'}`}></div>
+                          <span className={`text-xs font-medium ${user.status === ACTIVE_STATUS ? 'text-emerald-600' : 'text-slate-400'}`}>
                             {user.status}
                           </span>
                         </div>
@@ -424,8 +475,12 @@ export default function AdminDashboard() {
                           <button title="Sửa" className="p-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
                             <Edit3 size={16} />
                           </button>
-                          <button title={user.status === 'Bị khóa' ? 'Mở khóa' : 'Khóa'} className="p-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
-                            {user.status === 'Bị khóa' ? (
+                          <button
+                            title={user.status === LOCKED_STATUS ? 'Mở khóa' : 'Khóa'}
+                            onClick={() => setUserToToggle(user)}
+                            className="p-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                          >
+                            {user.status === LOCKED_STATUS ? (
                               <Unlock size={16} className="text-emerald-500" />
                             ) : (
                               <Lock size={16} className="text-[#e53935]" />
@@ -480,6 +535,52 @@ export default function AdminDashboard() {
         )}
 
       </main>
+
+      {userToToggle && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl border border-slate-200">
+            <div className="flex items-start gap-4">
+              <div className={`mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${userToToggle.status === LOCKED_STATUS ? 'bg-emerald-50' : 'bg-red-50'}`}>
+                {userToToggle.status === LOCKED_STATUS ? (
+                  <Unlock size={20} className="text-emerald-600" />
+                ) : (
+                  <Lock size={20} className="text-[#e53935]" />
+                )}
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">
+                  {userToToggle.status === LOCKED_STATUS ? 'Mở khóa tài khoản?' : 'Khóa tài khoản?'}
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-slate-500">
+                  Bạn có chắc chắn muốn {userToToggle.status === LOCKED_STATUS ? 'mở khóa' : 'khóa'} tài khoản <span className="font-semibold text-slate-800">{userToToggle.email || userToToggle.name}</span>?
+                </p>
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setUserToToggle(null)}
+                disabled={isUpdatingUserStatus}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={confirmToggleUserStatus}
+                disabled={isUpdatingUserStatus}
+                className={`rounded-xl px-4 py-2 text-sm font-bold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60 ${
+                  userToToggle.status === LOCKED_STATUS
+                    ? 'bg-emerald-600 hover:bg-emerald-700'
+                    : 'bg-[#e53935] hover:bg-[#c62828]'
+                }`}
+              >
+                {isUpdatingUserStatus ? 'Đang xử lý...' : 'Xác nhận'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
