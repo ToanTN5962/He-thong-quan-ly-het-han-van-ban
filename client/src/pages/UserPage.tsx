@@ -50,6 +50,7 @@ interface NotificationItem {
   message: string;
   time: string;
   variant: 'success' | 'warning' | 'info';
+  isRead: boolean;
 }
 
 type FileAction = 'PREVIEW' | 'DOWNLOAD';
@@ -100,10 +101,41 @@ export default function UserHomePage() {
         message: n.content || '',
         time: n.createdAt ? new Date(n.createdAt).toLocaleString('vi-VN') : '',
         variant: n.notificationType === 'NEW_DOCUMENT' ? 'success' : n.notificationType === 'EXPIRING' ? 'warning' : 'info',
+        isRead: Boolean(n.isRead),
       }));
       setNotifications(mapped);
     } catch (e) {
       console.error('Lỗi khi lấy thông báo:', e);
+    }
+  };
+
+  const markNotificationAsRead = async (notificationId: string) => {
+    const target = notifications.find((item) => item.id === notificationId);
+    if (!target || target.isRead) {
+      return;
+    }
+
+    setNotifications((items) =>
+      items.map((item) =>
+        item.id === notificationId ? { ...item, isRead: true } : item
+      )
+    );
+
+    try {
+      const response = await fetch(`http://localhost:8080/api/notifications/${notificationId}/read`, {
+        method: 'PATCH',
+      });
+
+      if (!response.ok) {
+        throw new Error('Không thể đánh dấu thông báo đã đọc.');
+      }
+    } catch (error) {
+      setNotifications((items) =>
+        items.map((item) =>
+          item.id === notificationId ? { ...item, isRead: false } : item
+        )
+      );
+      console.error(error);
     }
   };
 
@@ -818,10 +850,14 @@ export default function UserHomePage() {
             </div>
             <div className="grid gap-4">
               {notifications.map((item) => (
-                <div
+                <button
+                  type="button"
                   key={item.id}
-                  className={`rounded-3xl p-5 border ${
-                    item.variant === 'success'
+                  onClick={() => markNotificationAsRead(item.id)}
+                  className={`w-full rounded-3xl border p-5 text-left transition-all hover:-translate-y-0.5 hover:shadow-sm ${
+                    item.isRead
+                      ? 'border-slate-100 bg-white opacity-75'
+                      : item.variant === 'success'
                       ? 'border-emerald-100 bg-emerald-50'
                       : item.variant === 'warning'
                       ? 'border-orange-100 bg-orange-50'
@@ -830,12 +866,15 @@ export default function UserHomePage() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h3 className="text-base font-semibold text-slate-900">{item.title}</h3>
+                      <div className="flex items-center gap-2">
+                        {!item.isRead && <span className="h-2.5 w-2.5 rounded-full bg-[#e53935]" />}
+                        <h3 className={`text-base font-semibold ${item.isRead ? 'text-slate-600' : 'text-slate-900'}`}>{item.title}</h3>
+                      </div>
                       <p className="mt-2 text-sm text-slate-700">{item.message}</p>
                     </div>
                     <span className="text-xs uppercase tracking-[0.2em] text-slate-500">{item.time}</span>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </section>
