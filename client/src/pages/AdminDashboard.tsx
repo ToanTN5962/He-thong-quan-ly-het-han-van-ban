@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   LayoutDashboard, 
   UserRound, 
@@ -15,7 +15,10 @@ import {
   Filter,
   Download,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Clock3,
+  Activity,
+  Layers
 } from 'lucide-react';
 
 interface User {
@@ -28,22 +31,112 @@ interface User {
   color: string;
 }
 
-const userStats = [
-  { label: 'TỔNG NGƯỜI DÙNG', value: '1,284', icon: UserRound, color: 'text-[#e53935]', bgColor: 'bg-red-50' },
-  { label: 'ĐANG HOẠT ĐỘNG', value: '1,120', icon: CheckCircle2, color: 'text-emerald-500', bgColor: 'bg-emerald-50' },
-  { label: 'BỊ KHÓA', value: '14', icon: Lock, color: 'text-[#e53935]', bgColor: 'bg-red-50' },
-  { label: 'YÊU CẦU MỚI', value: '8', icon: UserRound, color: 'text-slate-400', bgColor: 'bg-slate-100' }
-];
+interface BackendUser {
+  id: number;
+  name: string;
+  email: string;
+  role: 'ADMIN' | 'USER' | 'Admin' | 'User';
+  isActive: boolean;
+}
 
-const users: User[] = [
-  { id: 1, initials: 'NT', name: 'Nguyễn Thành Trung', email: 'trung.nt@docwatch.io', role: 'Admin', status: 'Đang hoạt động', color: 'bg-red-100 text-red-600' },
-  { id: 2, initials: 'LA', name: 'Lê Thị Anh', email: 'anh.lt@docwatch.io', role: 'User', status: 'Bị khóa', color: 'bg-slate-100 text-slate-600' },
-  { id: 3, initials: 'HM', name: 'Hoàng Minh', email: 'minh.h@docwatch.io', role: 'User', status: 'Đang hoạt động', color: 'bg-slate-100 text-slate-600' },
-  { id: 4, initials: 'PV', name: 'Phạm Văn Vũ', email: 'vu.pv@docwatch.io', role: 'User', status: 'Đang hoạt động', color: 'bg-slate-100 text-slate-600' },
-];
+interface UserStats {
+  totalUsers: number;
+  activeUsers: number;
+  lockedUsers: number;
+}
+
+const initialStats: UserStats = {
+  totalUsers: 0,
+  activeUsers: 0,
+  lockedUsers: 0,
+};
+
+const BACKEND_URL = 'http://localhost:8080';
+
+const getInitials = (name: string | null | undefined) => {
+  if (!name) {
+    return 'NA';
+  }
+  const words = name.trim().split(' ').filter(Boolean);
+  if (words.length === 0) return 'NA';
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+};
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState('users');
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [users, setUsers] = useState<User[]>([]);
+  const [stats, setStats] = useState<UserStats>(initialStats);
+
+  const dashboardSummary = [
+    { label: 'TỔNG SỐ VĂN BẢN', value: '3,412', icon: FileText, color: 'text-[#e53935]', bgColor: 'bg-red-50' },
+    { label: 'TỔNG SỐ FILE', value: '7,984', icon: Layers, color: 'text-[#1e40af]', bgColor: 'bg-blue-50' },
+    { label: 'ĐÃ HẾT HẠN', value: '628', icon: Clock3, color: 'text-[#f59e0b]', bgColor: 'bg-amber-50' },
+    { label: 'CÒN HẠN', value: '2,784', icon: CheckCircle2, color: 'text-emerald-500', bgColor: 'bg-emerald-50' },
+  ];
+
+  const uploadTimeline = [
+    { label: 'T2', value: 34 },
+    { label: 'T3', value: 48 },
+    { label: 'T4', value: 62 },
+    { label: 'T5', value: 55 },
+    { label: 'T6', value: 72 },
+    { label: 'T7', value: 86 },
+    { label: 'CN', value: 74 },
+  ];
+
+  const auditLogs = [
+    { id: 1, event: 'Upload tài liệu', actor: 'admin@example.com', detail: 'Đã tải lên Quyết định 123.pdf', time: '2 phút trước' },
+    { id: 2, event: 'Đăng nhập', actor: 'vu.pv@docwatch.io', detail: 'Đăng nhập thành công vào hệ thống', time: '10 phút trước' },
+    { id: 3, event: 'Khóa tài khoản', actor: 'admin@example.com', detail: 'Khóa tài khoản minh.h@docwatch.io', time: '1 giờ trước' },
+    { id: 4, event: 'Tạo người dùng', actor: 'admin@example.com', detail: 'Tạo tài khoản anh.lt@docwatch.io', time: '3 giờ trước' },
+  ];
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/users`);
+        if (!response.ok) {
+          throw new Error('Không thể lấy danh sách người dùng');
+        }
+        const data: BackendUser[] = await response.json();
+        const mappedUsers: User[] = data.map((user) => ({
+          id: user.id,
+          initials: getInitials(user.name),
+          name: user.name,
+          email: user.email,
+          role: (user.role === 'ADMIN' || user.role === 'Admin' ? 'Admin' : 'User') as 'Admin' | 'User',
+          status: user.isActive ? 'Đang hoạt động' : 'Bị khóa',
+          color: user.role === 'ADMIN' || user.role === 'Admin' ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-600',
+        }));
+        setUsers(mappedUsers);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    const fetchStats = async () => {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/users/stats`);
+        if (!response.ok) {
+          throw new Error('Không thể lấy số liệu người dùng');
+        }
+        const data: UserStats = await response.json();
+        setStats(data);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    fetchStats();
+    fetchUsers();
+  }, []);
+
+  const userStats = [
+    { label: 'TỔNG NGƯỜI DÙNG', value: stats.totalUsers.toLocaleString(), icon: UserRound, color: 'text-[#e53935]', bgColor: 'bg-red-50' },
+    { label: 'ĐANG HOẠT ĐỘNG', value: stats.activeUsers.toLocaleString(), icon: CheckCircle2, color: 'text-emerald-500', bgColor: 'bg-emerald-50' },
+    { label: 'BỊ KHÓA', value: stats.lockedUsers.toLocaleString(), icon: Lock, color: 'text-[#e53935]', bgColor: 'bg-red-50' },
+  ];
 
   return (
     <div className="flex min-h-screen bg-[#fcf9f8] font-sans text-slate-900">
@@ -125,133 +218,218 @@ export default function AdminDashboard() {
           </div>
         </header>
 
-        {/* Stats Section */}
-        <section className="grid grid-cols-4 gap-6 mb-8">
-          {userStats.map((stat, idx) => (
-            <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm flex justify-between items-center h-28">
-              <div>
-                <p className="text-[11px] font-bold text-slate-400 mb-1">{stat.label}</p>
-                <h3 className="text-3xl font-extrabold text-slate-800">{stat.value}</h3>
-              </div>
-              <div className={`w-11 h-11 rounded-full ${stat.bgColor} flex items-center justify-center`}>
-                <stat.icon size={20} className={stat.color} />
-              </div>
-            </div>
-          ))}
-        </section>
+        {activeTab === 'dashboard' && (
+          <>
+            <section className="grid grid-cols-4 gap-6 mb-8">
+              {dashboardSummary.map((stat, idx) => (
+                <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm flex justify-between items-center h-28">
+                  <div>
+                    <p className="text-[11px] font-bold text-slate-400 mb-1">{stat.label}</p>
+                    <h3 className="text-3xl font-extrabold text-slate-800">{stat.value}</h3>
+                  </div>
+                  <div className={`w-11 h-11 rounded-full ${stat.bgColor} flex items-center justify-center`}>
+                    <stat.icon size={20} className={stat.color} />
+                  </div>
+                </div>
+              ))}
+            </section>
 
-        {/* Action Controls Filter and Search */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <input 
-              type="text" 
-              placeholder="Tìm kiếm theo tên hoặc email..." 
-              className="pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl w-80 text-sm focus:outline-none focus:ring-1 focus:ring-red-400 focus:border-red-400 transition-all shadow-sm"
-            />
-          </div>
-          <div className="flex items-center gap-3">
-            <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 bg-white rounded-xl text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm">
-              <Filter size={14} /> Bộ lọc
-            </button>
-            <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 bg-white rounded-xl text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm">
-              <Download size={14} /> Xuất dữ liệu
-            </button>
-            <button className="flex items-center gap-2 px-5 py-2.5 bg-[#e53935] hover:bg-[#c62828] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-red-100">
-              <Plus size={16} /> Thêm người dùng mới
-            </button>
-          </div>
-        </div>
-
-        {/* Data Table Area */}
-        <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
-          <table className="w-full text-left">
-            <thead className="bg-slate-50/70 border-b border-slate-100 text-xs font-bold text-slate-400">
-              <tr>
-                <th className="px-6 py-4 font-semibold">Tên người dùng</th>
-                <th className="px-6 py-4 font-semibold">Email</th>
-                <th className="px-6 py-4 font-semibold">Vai trò</th>
-                <th className="px-6 py-4 font-semibold">Trạng thái</th>
-                <th className="px-6 py-4 font-semibold text-right">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {users.map((user) => (
-                <tr key={user.id} className="hover:bg-slate-50/40 transition-colors">
-                  {/* Name column */}
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs ${user.color}`}>
-                        {user.initials}
+            <section className="grid xl:grid-cols-[1.5fr_1fr] gap-6 mb-8">
+              <div className="bg-white rounded-3xl border border-slate-200/70 shadow-sm p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.24em] text-slate-400 font-bold">Biểu đồ upload</p>
+                    <h2 className="text-xl font-semibold text-slate-900">Số file upload theo ngày</h2>
+                  </div>
+                  <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-semibold">
+                    <Activity size={14} /> Theo tuần
+                  </span>
+                </div>
+                <div className="flex items-end gap-3 h-56">
+                  {uploadTimeline.map((item) => (
+                    <div key={item.label} className="flex-1 flex flex-col justify-end gap-2">
+                      <div className="h-40 bg-slate-100 rounded-3xl relative overflow-hidden">
+                        <div className="absolute bottom-0 left-0 right-0 bg-[#e53935] rounded-t-3xl transition-all" style={{ height: `${item.value}%` }} />
                       </div>
-                      <span className="text-sm font-bold text-slate-700">{user.name}</span>
+                      <span className="text-center text-xs text-slate-500">{item.label}</span>
                     </div>
-                  </td>
-                  {/* Email column */}
-                  <td className="px-6 py-4 text-sm text-slate-500">{user.email}</td>
-                  {/* Role column */}
-                  <td className="px-6 py-4 text-sm">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${user.role === 'Admin' ? 'bg-red-100 text-[#e53935]' : 'bg-slate-100 text-slate-500'}`}>
-                      {user.role}
-                    </span>
-                  </td>
-                  {/* Status column */}
-                  <td className="px-6 py-4 text-sm">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-1.5 h-1.5 rounded-full ${user.status === 'Đang hoạt động' ? 'bg-emerald-500' : 'bg-slate-400'}`}></div>
-                      <span className={`text-xs font-medium ${user.status === 'Đang hoạt động' ? 'text-emerald-600' : 'text-slate-400'}`}>
-                        {user.status}
-                      </span>
+                  ))}
+                </div>
+                <div className="grid grid-cols-2 gap-4 mt-6">
+                  <div className="bg-slate-50 p-4 rounded-3xl">
+                    <p className="text-[11px] text-slate-500 uppercase tracking-[0.24em]">Top ngày</p>
+                    <p className="mt-2 text-xl font-bold text-slate-900">86 file</p>
+                  </div>
+                  <div className="bg-slate-50 p-4 rounded-3xl">
+                    <p className="text-[11px] text-slate-500 uppercase tracking-[0.24em]">Trung bình</p>
+                    <p className="mt-2 text-xl font-bold text-slate-900">59 file</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-3xl border border-slate-200/70 shadow-sm p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.24em] text-slate-400 font-bold">Audit log</p>
+                    <h2 className="text-xl font-semibold text-slate-900">Hoạt động gần nhất</h2>
+                  </div>
+                  <button className="text-xs font-semibold text-[#e53935] hover:text-[#c62828] transition-colors">Xem tất cả</button>
+                </div>
+                <div className="space-y-4">
+                  {auditLogs.map((log) => (
+                    <div key={log.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                      <div className="flex justify-between items-center gap-3 mb-1">
+                        <div className="flex items-center gap-2 text-slate-700 font-semibold">
+                          <Clock3 size={16} />
+                          <span>{log.event}</span>
+                        </div>
+                        <span className="text-[11px] uppercase tracking-[0.24em] text-slate-400">{log.time}</span>
+                      </div>
+                      <p className="text-sm text-slate-500">{log.detail}</p>
+                      <p className="mt-3 text-[11px] uppercase tracking-[0.24em] text-slate-400">Người dùng: {log.actor}</p>
                     </div>
-                  </td>
-                  {/* Actions column */}
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-1">
-                      <button title="Sửa" className="p-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
-                        <Edit3 size={16} />
-                      </button>
-                      <button title="Gia hạn/Reset" className="p-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
-                        <RotateCcw size={16} />
-                      </button>
-                      <button title={user.status === 'Bị khóa' ? 'Mở khóa' : 'Khóa'} className="p-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
-                        {user.status === 'Bị khóa' ? (
-                          <Unlock size={16} className="text-emerald-500" />
-                        ) : (
-                          <Lock size={16} className="text-[#e53935]" />
-                        )}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  ))}
+                </div>
+              </div>
+            </section>
+          </>
+        )}
 
-          {/* Pagination Footer */}
-          <div className="px-6 py-4 border-t border-slate-100 flex justify-between items-center bg-white">
-            <p className="text-xs text-slate-500 font-medium">Đang xem 1 - 10 của 1,284 người dùng</p>
-            <div className="flex items-center gap-1.5">
-              <button className="p-1.5 border border-slate-200 bg-white rounded-lg text-slate-400 hover:bg-slate-50 transition-colors disabled:opacity-50">
-                <ChevronLeft size={16} />
-              </button>
-              {[1, 2, 3].map(p => (
-                <button 
-                  key={p} 
-                  className={`w-7 h-7 rounded-lg text-xs font-bold transition-all ${
-                    p === 1 
-                      ? 'bg-[#e53935] text-white' 
-                      : 'text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  {p}
-                </button>
+        {activeTab === 'users' && (
+          <>
+            <section className="grid grid-cols-3 gap-6 mb-8">
+              {userStats.map((stat, idx) => (
+                <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm flex justify-between items-center h-28">
+                  <div>
+                    <p className="text-[11px] font-bold text-slate-400 mb-1">{stat.label}</p>
+                    <h3 className="text-3xl font-extrabold text-slate-800">{stat.value}</h3>
+                  </div>
+                  <div className={`w-11 h-11 rounded-full ${stat.bgColor} flex items-center justify-center`}>
+                    <stat.icon size={20} className={stat.color} />
+                  </div>
+                </div>
               ))}
-              <button className="p-1.5 border border-slate-200 bg-white rounded-lg text-slate-400 hover:bg-slate-50 transition-colors">
-                <ChevronRight size={16} />
-              </button>
+            </section>
+
+            <div className="flex justify-between items-center mb-6">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <input 
+                  type="text" 
+                  placeholder="Tìm kiếm theo tên hoặc email..." 
+                  className="pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl w-80 text-sm focus:outline-none focus:ring-1 focus:ring-red-400 focus:border-red-400 transition-all shadow-sm"
+                />
+              </div>
+              <div className="flex items-center gap-3">
+                <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 bg-white rounded-xl text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm">
+                  <Filter size={14} /> Bộ lọc
+                </button>
+                <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 bg-white rounded-xl text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm">
+                  <Download size={14} /> Xuất dữ liệu
+                </button>
+                <button className="flex items-center gap-2 px-5 py-2.5 bg-[#e53935] hover:bg-[#c62828] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-red-100">
+                  <Plus size={16} /> Thêm người dùng mới
+                </button>
+              </div>
             </div>
+
+            <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
+              <table className="w-full text-left">
+                <thead className="bg-slate-50/70 border-b border-slate-100 text-xs font-bold text-slate-400">
+                  <tr>
+                    <th className="px-6 py-4 font-semibold">Tên người dùng</th>
+                    <th className="px-6 py-4 font-semibold">Email</th>
+                    <th className="px-6 py-4 font-semibold">Vai trò</th>
+                    <th className="px-6 py-4 font-semibold">Trạng thái</th>
+                    <th className="px-6 py-4 font-semibold text-right">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {users.map((user) => (
+                    <tr key={user.id} className="hover:bg-slate-50/40 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs ${user.color}`}>
+                            {user.initials}
+                          </div>
+                          <span className="text-sm font-bold text-slate-700">{user.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-slate-500">{user.email}</td>
+                      <td className="px-6 py-4 text-sm">
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${user.role === 'Admin' ? 'bg-red-100 text-[#e53935]' : 'bg-slate-100 text-slate-500'}`}>
+                          {user.role}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-1.5 h-1.5 rounded-full ${user.status === 'Đang hoạt động' ? 'bg-emerald-500' : 'bg-slate-400'}`}></div>
+                          <span className={`text-xs font-medium ${user.status === 'Đang hoạt động' ? 'text-emerald-600' : 'text-slate-400'}`}>
+                            {user.status}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex justify-end gap-1">
+                          <button title="Sửa" className="p-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
+                            <Edit3 size={16} />
+                          </button>
+                          <button title="Gia hạn/Reset" className="p-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
+                            <RotateCcw size={16} />
+                          </button>
+                          <button title={user.status === 'Bị khóa' ? 'Mở khóa' : 'Khóa'} className="p-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
+                            {user.status === 'Bị khóa' ? (
+                              <Unlock size={16} className="text-emerald-500" />
+                            ) : (
+                              <Lock size={16} className="text-[#e53935]" />
+                            )}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <div className="px-6 py-4 border-t border-slate-100 flex justify-between items-center bg-white">
+                <p className="text-xs text-slate-500 font-medium">Tổng cộng {stats.totalUsers.toLocaleString()} người dùng</p>
+                <div className="flex items-center gap-1.5">
+                  <button className="p-1.5 border border-slate-200 bg-white rounded-lg text-slate-400 hover:bg-slate-50 transition-colors disabled:opacity-50">
+                    <ChevronLeft size={16} />
+                  </button>
+                  {[1, 2, 3].map(p => (
+                    <button 
+                      key={p} 
+                      className={`w-7 h-7 rounded-lg text-xs font-bold transition-all ${
+                        p === 1 
+                          ? 'bg-[#e53935] text-white' 
+                          : 'text-slate-600 hover:bg-slate-50'
+                      }`} 
+                    >
+                      {p}
+                    </button>
+                  ))}
+                  <button className="p-1.5 border border-slate-200 bg-white rounded-lg text-slate-400 hover:bg-slate-50 transition-colors">
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {activeTab === 'documents' && (
+          <div className="bg-white rounded-3xl border border-slate-200/70 shadow-sm p-8 text-slate-500">
+            <p className="text-lg font-semibold text-slate-800 mb-3">Quản lý tài liệu</p>
+            <p>Chức năng này đang được xây dựng để hiển thị danh sách tài liệu, trạng thái và chi tiết file.</p>
           </div>
-        </div>
+        )}
+
+        {activeTab === 'settings' && (
+          <div className="bg-white rounded-3xl border border-slate-200/70 shadow-sm p-8 text-slate-500">
+            <p className="text-lg font-semibold text-slate-800 mb-3">Cài đặt hệ thống</p>
+            <p>Chức năng cài đặt sẽ quản lý quyền, cấu hình và các thông số hệ thống.</p>
+          </div>
+        )}
 
       </main>
     </div>
