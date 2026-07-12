@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import {
   LayoutDashboard, 
   UserRound, 
@@ -45,10 +45,50 @@ interface UserStats {
   lockedUsers: number;
 }
 
+interface DashboardData {
+  summary: {
+    totalDocuments: number;
+    totalFiles: number;
+    expiredDocuments: number;
+    activeDocuments: number;
+  };
+  uploadTimeline: Array<{
+    label: string;
+    fileCount: number;
+    value: number;
+  }>;
+  uploadStats: {
+    topDayFiles: number;
+    averageFiles: number;
+  };
+  auditLogs: Array<{
+    id: number;
+    event: string;
+    actor: string;
+    detail: string;
+    createdAt: string;
+  }>;
+}
+
 const initialStats: UserStats = {
   totalUsers: 0,
   activeUsers: 0,
   lockedUsers: 0,
+};
+
+const initialDashboardData: DashboardData = {
+  summary: {
+    totalDocuments: 0,
+    totalFiles: 0,
+    expiredDocuments: 0,
+    activeDocuments: 0,
+  },
+  uploadTimeline: [],
+  uploadStats: {
+    topDayFiles: 0,
+    averageFiles: 0,
+  },
+  auditLogs: [],
 };
 
 const BACKEND_URL = 'http://localhost:8080';
@@ -67,37 +107,47 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [users, setUsers] = useState<User[]>([]);
   const [stats, setStats] = useState<UserStats>(initialStats);
+  const [dashboardData, setDashboardData] = useState<DashboardData>(initialDashboardData);
 
   const dashboardSummary = [
-    { label: 'TỔNG SỐ VĂN BẢN', value: '3,412', icon: FileText, color: 'text-[#e53935]', bgColor: 'bg-red-50' },
-    { label: 'TỔNG SỐ FILE', value: '7,984', icon: Layers, color: 'text-[#1e40af]', bgColor: 'bg-blue-50' },
-    { label: 'ĐÃ HẾT HẠN', value: '628', icon: Clock3, color: 'text-[#f59e0b]', bgColor: 'bg-amber-50' },
-    { label: 'CÒN HẠN', value: '2,784', icon: CheckCircle2, color: 'text-emerald-500', bgColor: 'bg-emerald-50' },
+    { label: 'TỔNG SỐ VĂN BẢN', value: dashboardData.summary.totalDocuments.toLocaleString(), icon: FileText, color: 'text-[#e53935]', bgColor: 'bg-red-50' },
+    { label: 'TỔNG SỐ FILE', value: dashboardData.summary.totalFiles.toLocaleString(), icon: Layers, color: 'text-[#1e40af]', bgColor: 'bg-blue-50' },
+    { label: 'ĐÃ HẾT HẠN', value: dashboardData.summary.expiredDocuments.toLocaleString(), icon: Clock3, color: 'text-[#f59e0b]', bgColor: 'bg-amber-50' },
+    { label: 'CÒN HẠN', value: dashboardData.summary.activeDocuments.toLocaleString(), icon: CheckCircle2, color: 'text-emerald-500', bgColor: 'bg-emerald-50' },
   ];
+  const formatRelativeTime = (dateTime: string) => {
+    const createdAt = new Date(dateTime);
+    if (Number.isNaN(createdAt.getTime())) return '';
 
-  const uploadTimeline = [
-    { label: 'T2', value: 34 },
-    { label: 'T3', value: 48 },
-    { label: 'T4', value: 62 },
-    { label: 'T5', value: 55 },
-    { label: 'T6', value: 72 },
-    { label: 'T7', value: 86 },
-    { label: 'CN', value: 74 },
-  ];
+    const diffMinutes = Math.max(Math.floor((Date.now() - createdAt.getTime()) / 60000), 0);
+    if (diffMinutes < 1) return 'Vừa xong';
+    if (diffMinutes < 60) return `${diffMinutes} phút trước`;
 
-  const auditLogs = [
-    { id: 1, event: 'Upload tài liệu', actor: 'admin@example.com', detail: 'Đã tải lên Quyết định 123.pdf', time: '2 phút trước' },
-    { id: 2, event: 'Đăng nhập', actor: 'vu.pv@docwatch.io', detail: 'Đăng nhập thành công vào hệ thống', time: '10 phút trước' },
-    { id: 3, event: 'Khóa tài khoản', actor: 'admin@example.com', detail: 'Khóa tài khoản minh.h@docwatch.io', time: '1 giờ trước' },
-    { id: 4, event: 'Tạo người dùng', actor: 'admin@example.com', detail: 'Tạo tài khoản anh.lt@docwatch.io', time: '3 giờ trước' },
-  ];
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) return `${diffHours} giờ trước`;
+
+    return `${Math.floor(diffHours / 24)} ngày trước`;
+  };
 
   useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/admin/dashboard`);
+        if (!response.ok) {
+          throw new Error('Không thể lấy dữ liệu dashboard');
+        }
+        const data: DashboardData = await response.json();
+        setDashboardData(data);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
     const fetchUsers = async () => {
       try {
         const response = await fetch(`${BACKEND_URL}/api/users`);
         if (!response.ok) {
-          throw new Error('Không thể lấy danh sách người dùng');
+          throw new Error('Không tìm thấy danh sách người dùng');
         }
         const data: BackendUser[] = await response.json();
         const mappedUsers: User[] = data.map((user) => ({
@@ -119,7 +169,7 @@ export default function AdminDashboard() {
       try {
         const response = await fetch(`${BACKEND_URL}/api/users/stats`);
         if (!response.ok) {
-          throw new Error('Không thể lấy số liệu người dùng');
+          throw new Error('Không thấy dữ liệu thống kê người dùng');
         }
         const data: UserStats = await response.json();
         setStats(data);
@@ -128,14 +178,15 @@ export default function AdminDashboard() {
       }
     };
 
+    fetchDashboard();
     fetchStats();
     fetchUsers();
   }, []);
 
   const userStats = [
-    { label: 'TỔNG NGƯỜI DÙNG', value: stats.totalUsers.toLocaleString(), icon: UserRound, color: 'text-[#e53935]', bgColor: 'bg-red-50' },
-    { label: 'ĐANG HOẠT ĐỘNG', value: stats.activeUsers.toLocaleString(), icon: CheckCircle2, color: 'text-emerald-500', bgColor: 'bg-emerald-50' },
-    { label: 'BỊ KHÓA', value: stats.lockedUsers.toLocaleString(), icon: Lock, color: 'text-[#e53935]', bgColor: 'bg-red-50' },
+    { label: 'Tổng số người dùng', value: stats.totalUsers.toLocaleString(), icon: UserRound, color: 'text-[#e53935]', bgColor: 'bg-red-50' },
+    { label: 'Đang hoạt động', value: stats.activeUsers.toLocaleString(), icon: CheckCircle2, color: 'text-emerald-500', bgColor: 'bg-emerald-50' },
+    { label: 'Bị khóa', value: stats.lockedUsers.toLocaleString(), icon: Lock, color: 'text-[#e53935]', bgColor: 'bg-red-50' },
   ];
 
   return (
@@ -205,7 +256,7 @@ export default function AdminDashboard() {
         <header className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold mb-1">Quản lý người dùng</h1>
-            <p className="text-slate-400 text-sm">Kiểm soát quyền truy cập và bảo mật hệ thống.</p>
+            <p className="text-slate-400 text-sm">Kiểm soát quyền truy cập và báo cáo hàng tháng.</p>
           </div>
           <div className="flex items-center gap-4">
             <button className="p-2 text-slate-600 hover:bg-slate-100 rounded-full transition-colors">
@@ -246,7 +297,7 @@ export default function AdminDashboard() {
                   </span>
                 </div>
                 <div className="flex items-end gap-3 h-56">
-                  {uploadTimeline.map((item) => (
+                  {dashboardData.uploadTimeline.map((item) => (
                     <div key={item.label} className="flex-1 flex flex-col justify-end gap-2">
                       <div className="h-40 bg-slate-100 rounded-3xl relative overflow-hidden">
                         <div className="absolute bottom-0 left-0 right-0 bg-[#e53935] rounded-t-3xl transition-all" style={{ height: `${item.value}%` }} />
@@ -258,11 +309,11 @@ export default function AdminDashboard() {
                 <div className="grid grid-cols-2 gap-4 mt-6">
                   <div className="bg-slate-50 p-4 rounded-3xl">
                     <p className="text-[11px] text-slate-500 uppercase tracking-[0.24em]">Top ngày</p>
-                    <p className="mt-2 text-xl font-bold text-slate-900">86 file</p>
+                    <p className="mt-2 text-xl font-bold text-slate-900">{dashboardData.uploadStats.topDayFiles.toLocaleString()} file</p>
                   </div>
                   <div className="bg-slate-50 p-4 rounded-3xl">
                     <p className="text-[11px] text-slate-500 uppercase tracking-[0.24em]">Trung bình</p>
-                    <p className="mt-2 text-xl font-bold text-slate-900">59 file</p>
+                    <p className="mt-2 text-xl font-bold text-slate-900">{dashboardData.uploadStats.averageFiles.toLocaleString()} file</p>
                   </div>
                 </div>
               </div>
@@ -275,17 +326,17 @@ export default function AdminDashboard() {
                   <button className="text-xs font-semibold text-[#e53935] hover:text-[#c62828] transition-colors">Xem tất cả</button>
                 </div>
                 <div className="space-y-4">
-                  {auditLogs.map((log) => (
+                  {dashboardData.auditLogs.map((log) => (
                     <div key={log.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
                       <div className="flex justify-between items-center gap-3 mb-1">
                         <div className="flex items-center gap-2 text-slate-700 font-semibold">
                           <Clock3 size={16} />
                           <span>{log.event}</span>
                         </div>
-                        <span className="text-[11px] uppercase tracking-[0.24em] text-slate-400">{log.time}</span>
+                        <span className="text-[11px] uppercase tracking-[0.24em] text-slate-400">{formatRelativeTime(log.createdAt)}</span>
                       </div>
                       <p className="text-sm text-slate-500">{log.detail}</p>
-                      <p className="mt-3 text-[11px] uppercase tracking-[0.24em] text-slate-400">Người dùng: {log.actor}</p>
+                      <p className="mt-3 text-[11px] uppercase tracking-[0.24em] text-slate-400">Người dùng {log.actor}</p>
                     </div>
                   ))}
                 </div>
@@ -370,10 +421,10 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-1">
-                          <button title="Sửa" className="p-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
+                          <button title="Sá»­a" className="p-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
                             <Edit3 size={16} />
                           </button>
-                          <button title="Gia hạn/Reset" className="p-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
+                          <button title="Gia háº¡n/Reset" className="p-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
                             <RotateCcw size={16} />
                           </button>
                           <button title={user.status === 'Bị khóa' ? 'Mở khóa' : 'Khóa'} className="p-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
@@ -391,7 +442,7 @@ export default function AdminDashboard() {
               </table>
 
               <div className="px-6 py-4 border-t border-slate-100 flex justify-between items-center bg-white">
-                <p className="text-xs text-slate-500 font-medium">Tổng cộng {stats.totalUsers.toLocaleString()} người dùng</p>
+                <p className="text-xs text-slate-500 font-medium">Tất cả {stats.totalUsers.toLocaleString()} người dùng</p>
                 <div className="flex items-center gap-1.5">
                   <button className="p-1.5 border border-slate-200 bg-white rounded-lg text-slate-400 hover:bg-slate-50 transition-colors disabled:opacity-50">
                     <ChevronLeft size={16} />
@@ -420,14 +471,14 @@ export default function AdminDashboard() {
         {activeTab === 'documents' && (
           <div className="bg-white rounded-3xl border border-slate-200/70 shadow-sm p-8 text-slate-500">
             <p className="text-lg font-semibold text-slate-800 mb-3">Quản lý tài liệu</p>
-            <p>Chức năng này đang được xây dựng để hiển thị danh sách tài liệu, trạng thái và chi tiết file.</p>
+            <p>Hiển thị danh sách, trạng thái và chi tiết file.</p>
           </div>
         )}
 
         {activeTab === 'settings' && (
           <div className="bg-white rounded-3xl border border-slate-200/70 shadow-sm p-8 text-slate-500">
-            <p className="text-lg font-semibold text-slate-800 mb-3">Cài đặt hệ thống</p>
-            <p>Chức năng cài đặt sẽ quản lý quyền, cấu hình và các thông số hệ thống.</p>
+            <p className="text-lg font-semibold text-slate-800 mb-3">Cài đặt</p>
+            <p>Đang xây dựng.</p>
           </div>
         )}
 
@@ -435,3 +486,4 @@ export default function AdminDashboard() {
     </div>
   );
 }
+

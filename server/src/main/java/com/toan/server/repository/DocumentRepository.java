@@ -23,6 +23,8 @@ public interface DocumentRepository extends JpaRepository<Document, Long> {
 
     List<Document> findByStatusIn(List<DocumentStatus> statuses);
 
+    Long countByStatus(DocumentStatus status);
+
     @Query("""
         SELECT DISTINCT d
         FROM Document d
