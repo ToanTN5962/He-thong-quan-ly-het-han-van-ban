@@ -93,7 +93,7 @@ const initialDashboardData: DashboardData = {
   auditLogs: [],
 };
 
-const BACKEND_URL = 'http://localhost:8080';
+const BACKEND_URL = '';
 const ACTIVE_STATUS: UserStatus = 'Đang hoạt động';
 const LOCKED_STATUS: UserStatus = 'Bị khóa';
 

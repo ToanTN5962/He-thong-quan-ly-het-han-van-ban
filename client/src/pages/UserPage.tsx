@@ -94,7 +94,7 @@ export default function UserHomePage() {
   const fetchNotifications = async (email?: string) => {
     if (!email) return;
     try {
-      const resp = await fetch(`http://localhost:8080/api/notifications/user?email=${encodeURIComponent(email)}`);
+      const resp = await fetch(`/api/notifications/user?email=${encodeURIComponent(email)}`);
       if (!resp.ok) return;
       const data = await resp.json();
       const mapped: NotificationItem[] = (data || []).map((n: any) => ({
@@ -124,7 +124,7 @@ export default function UserHomePage() {
     );
 
     try {
-      const response = await fetch(`http://localhost:8080/api/notifications/${notificationId}/read`, {
+      const response = await fetch(`/api/notifications/${notificationId}/read`, {
         method: 'PATCH',
       });
 
@@ -150,7 +150,7 @@ export default function UserHomePage() {
     try {
       const actorEmail = userEmail || localStorage.getItem('userEmail') || '';
       const response = await fetch(
-        `http://localhost:8080/api/documents/${encodeURIComponent(deleteTarget.id)}?userEmail=${encodeURIComponent(actorEmail)}`,
+        `/api/documents/${encodeURIComponent(deleteTarget.id)}?userEmail=${encodeURIComponent(actorEmail)}`,
         { method: 'DELETE' }
       );
 
@@ -255,7 +255,7 @@ export default function UserHomePage() {
   const fetchUserDocuments = async (ownerEmail: string) => {
     setDocumentError(null);
     try {
-      const response = await fetch(`http://localhost:8080/api/documents/owner?ownerEmail=${encodeURIComponent(ownerEmail)}`);
+      const response = await fetch(`/api/documents/owner?ownerEmail=${encodeURIComponent(ownerEmail)}`);
       if (!response.ok) {
         throw new Error('Không thể tải danh sách tài liệu.');
       }
@@ -339,7 +339,7 @@ export default function UserHomePage() {
   const handleActionWithPresignedUrl = async (attachment: Attachment, actionType: FileAction) => {
     try {
       const response = await fetch(
-        `http://localhost:8080/api/files/preview?fileName=${encodeURIComponent(attachment.filePath)}`
+        `/api/files/preview?fileName=${encodeURIComponent(attachment.filePath)}`
       );
       
       if (!response.ok) {
@@ -980,7 +980,7 @@ export default function UserHomePage() {
 
                   setIsUploading(true);
                   try {
-                    const response = await fetch('http://localhost:8080/api/files/upload', {
+                    const response = await fetch('/api/files/upload', {
                       method: 'POST',
                       body: formData,
                     });
