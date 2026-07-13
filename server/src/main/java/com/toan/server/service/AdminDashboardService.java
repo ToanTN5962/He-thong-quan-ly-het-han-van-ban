@@ -1,7 +1,6 @@
 package com.toan.server.service;
 
 import com.toan.server.dto.response.AdminDashboardResponse;
-import com.toan.server.entity.Attachment;
 import com.toan.server.entity.AuditLog;
 import com.toan.server.enums.AuditAction;
 import com.toan.server.enums.DocumentStatus;
@@ -104,32 +103,33 @@ public class AdminDashboardService {
 
     private String toEventLabel(AuditAction action) {
         if (action == null) {
-            return "Ho\u1ea1t \u0111\u1ed9ng h\u1ec7 th\u1ed1ng";
+            return "Hoạt động hệ thống";
         }
         return switch (action) {
-            case CREATE -> "T\u1ea1o d\u1eef li\u1ec7u";
-            case UPDATE -> "C\u1eadp nh\u1eadt d\u1eef li\u1ec7u";
-            case DELETE -> "X\u00f3a d\u1eef li\u1ec7u";
-            case LOGIN -> "\u0110\u0103ng nh\u1eadp";
-            case UPLOAD -> "Upload t\u00e0i li\u1ec7u";
-            case REGISTER -> "T\u1ea1o t\u00e0i kho\u1ea3n";
+            case CREATE -> "Tạo dữ liệu";
+            case UPDATE -> "Cập nhật dữ liệu";
+            case DELETE -> "Xóa dữ liệu";
+            case LOGIN -> "Đăng nhập";
+            case UPLOAD -> "Upload tài liệu";
+            case REGISTER -> "Tạo tài khoản";
         };
     }
 
     private String toDetail(AuditAction action, String documentTitle) {
-        String target = documentTitle != null ? documentTitle : "h\u1ec7 th\u1ed1ng";
+        String target = documentTitle != null ? documentTitle : "hệ thống";
         if (action == null) {
-            return "Ghi nh\u1eadn ho\u1ea1t \u0111\u1ed9ng tr\u00ean " + target;
+            return "Ghi nhận hoạt động trên " + target;
         }
         return switch (action) {
-            case CREATE -> "T\u1ea1o m\u1edbi " + target;
-            case UPDATE -> "C\u1eadp nh\u1eadt " + target;
-            case DELETE -> "X\u00f3a " + target;
-            case LOGIN -> "\u0110\u0103ng nh\u1eadp th\u00e0nh c\u00f4ng v\u00e0o h\u1ec7 th\u1ed1ng";
+            case CREATE -> "Tạo mới " + target;
+            case UPDATE -> "Cập nhật " + target;
+            case DELETE -> "Xóa " + target;
+            case LOGIN -> "Đăng nhập thành công vào hệ thống";
             case UPLOAD -> "Upload file cho " + target;
-            case REGISTER -> "T\u1ea1o t\u00e0i kho\u1ea3n ng\u01b0\u1eddi d\u00f9ng";
+            case REGISTER -> "Tạo tài khoản người dùng";
         };
     }
+
 
     private String toVietnameseDayLabel(LocalDate date) {
         DayOfWeek day = date.getDayOfWeek();

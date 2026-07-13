@@ -1,0 +1,48 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: docwatch_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: document_management
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 269595
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d document_management"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./server
+    container_name: docwatch_backend
+    restart: unless-stopped
+    env_file:
+      - ./server/.env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/document_management
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 269595
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./client
+    container_name: docwatch_frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
